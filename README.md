@@ -1,4 +1,9 @@
-# Justicantus
+# Justicantus on Oasis
+This is a version of the [Justicantus](https://github.com/kristians-kuhta/justicantus) music streaming service on Oasis.
+The Oasis protocol is leveraged to ensure that audio files are encrypted before sending them over to the IPFS.
+The audio file is decrypted when a subscriber listens to them.
+
+# About Justicantus
 Digital music service empowering Artists with Ethical Music Streaming on the Blockchain.
 
 Read more about the project [here](docs/about_justicantus.md).
