@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 
 contract ResourceRegistration {
   enum ResourceType {
@@ -77,8 +78,12 @@ contract ResourceRegistration {
  // +++++++++++++++++++++++++++++++++++++++++++++++++
 
   function _registerArtist(address account, string memory name) internal {
-    // TODO: figure out the actual way to call rng using Sapphire
     uint256 generatedId = Sapphire.randomBytes(32, '');
+
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (artistNames[generatedId]) {
+      generatedId = Sapphire.randomBytes(32, '');
+    }
 
     artistNames[generatedId] = name;
     artistIds[account] = generatedId;
