@@ -78,11 +78,11 @@ contract ResourceRegistration {
  // +++++++++++++++++++++++++++++++++++++++++++++++++
 
   function _registerArtist(address account, string memory name) internal {
-    uint256 generatedId = Sapphire.randomBytes(32, '');
+    uint256 generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
-    if (artistNames[generatedId]) {
-      generatedId = Sapphire.randomBytes(32, '');
+    if (bytes(artistNames[generatedId]).length > 0) {
+      generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
     }
 
     artistNames[generatedId] = name;
@@ -97,8 +97,12 @@ contract ResourceRegistration {
   }
 
   function _registerSong(address artist, string memory uri) internal {
-    // TODO: figure out the actual way to call rng using Sapphire
-    uint256 generatedId = Sapphire.randomBytes(32, '');
+    uint256 generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (bytes(songURIs[generatedId]).length > 0) {
+      generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+    }
 
     songURIs[generatedId] = uri;
     songIds[artist].push(generatedId);
