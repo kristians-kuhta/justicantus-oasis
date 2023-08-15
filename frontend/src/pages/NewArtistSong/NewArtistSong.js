@@ -42,26 +42,6 @@ const NewArtistSong = () => {
     }
   }
 
-  const handleRegistrationCreatedEvent = (creator, resourceType, requestId) => {
-    const accountLowercase = account.toLowerCase();
-    const creatorLowercase = creator.toLowerCase();
-
-    // NOTE: we choose to ignore the fact that this account could register
-    //       multiple songs at once (maybe many tabs?)
-    if (creatorLowercase === accountLowercase && resourceType === SONG_RESOURCE_TYPE) {
-      // NOTE: In dev. environment you are expected to take this requestId
-      // and fulfill VRF request manually via the hardhat task.
-      // In mainnet or testnet the requests will be fulfilled by Chainlink.
-      if (process.env.NODE_ENV !== 'production') {
-        const timestamp = Date.now();
-        console.log(`[Song] npx hardhat vrf_fulfill ${requestId.toHexString()} ${timestamp} --network localhost`);
-        console.log(`(replace the ${timestamp} with the number you want to be assigned)`);
-      }
-
-      setProgress(75);
-    }
-  };
-
   const pinFileToIpfs = async (title, file) => {
     const { REACT_APP_PIN_FUNCTION_URL } = process.env;
 
@@ -91,9 +71,7 @@ const NewArtistSong = () => {
   };
 
   const onSubmit = async (data) => {
-    platform.on('RegistrationCreated', handleRegistrationCreatedEvent);
     try {
-
       platform.on('ResourceRegistered', handleResourceRegisteredEvent);
 
       setProgress(25);
@@ -101,6 +79,8 @@ const NewArtistSong = () => {
 
       // TODO: figure out the actual gas needed here
       await platform.registerSong(ipfsHash, { gasLimit: 225000 });
+
+      setProgress(75);
     } catch (e) {
       setMessage({
         text: 'Could not register the song!',

@@ -49,32 +49,15 @@ const RegisterArtist = () => {
   const onSubmit = async (data) => {
     setMessage({ text: '', type: null });
 
-    setProgress(25);
+    setProgress(33);
 
     try {
-      platform.on('RegistrationCreated', (creator, resourceType, requestId) => {
-        const accountLowercase = account.toLowerCase();
-        const creatorLowercase = creator.toLowerCase();
-
-        if (creatorLowercase === accountLowercase && resourceType === ARTIST_RESOURCE_TYPE) {
-          // NOTE: In dev. environment you are expected to take this requestId
-          // and fulfill VRF request manually via the hardhat task.
-          // In mainnet or testnet the requests will be fulfilled by Chainlink.
-          if (process.env.NODE_ENV !== 'production') {
-            const timestamp = Date.now();
-            console.log(`[Artist] npx hardhat vrf_fulfill ${requestId.toHexString()} ${timestamp} --network localhost`);
-            console.log(`(replace the ${timestamp} with the number you want to be assigned)`);
-          }
-          setProgress(75);
-        }
-      });
-
       platform.on('ResourceRegistered', handleResourceRegisteredEvent);
 
       // TODO: consider narrowing this down even further
       await platform.registerArtist(data.artistName, { gasLimit: 150000 });
 
-      setProgress(50);
+      setProgress(66);
     } catch (e) {
       setMessage({
         text: 'Could not register artist!',

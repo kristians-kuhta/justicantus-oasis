@@ -3,49 +3,30 @@ const { expect } = require("chai");
 const { BigNumber } = ethers;
 const {
   deployPlatform,
-  fully_register_artist,
-  fully_register_song,
+  registerArtist,
+  registerSong,
 } = require('./utils');
 
 describe("Platform", function () {
-  async function setUpArtistForClaimingRewards(
-    platform,
-    coordinator,
-    firstAccount,
-    secondAccount,
-    vrfAdmin
-  ) {
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+  async function setUpArtistForClaimingRewards(platform, firstAccount, secondAccount) {
+    await registerArtist(platform, firstAccount, 'First Artist');
 
-      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
-      const songId = 123;
-      const playedMinutes = 1000;
+    const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+    const playedMinutes = 1000;
 
-      await fully_register_song(
-        platform,
-        coordinator,
-        firstAccount,
-        ipfsID,
-        songId
-      );
+    await registerSong(platform, firstAccount, ipfsID);
 
-      await expect(
-        platform.setRewardForPlayedMinute(2)
-      ).to.emit(platform, 'RewardForPlayedMinutesChanged').withArgs(2);
+    await expect(
+      platform.setRewardForPlayedMinute(2)
+    ).to.emit(platform, 'RewardForPlayedMinutesChanged').withArgs(2);
 
-      await (await platform.addReporter(secondAccount.address)).wait();
-      await expect (
-        platform.connect(secondAccount).updatePlayedMinutes([{
-          artist: firstAccount.address,
-          playedMinutes
-        }])
-      ).to.emit(platform, 'PlayedMinutesUpdated');
+    await (await platform.addReporter(secondAccount.address)).wait();
+    await expect (
+      platform.connect(secondAccount).updatePlayedMinutes([{
+        artist: firstAccount.address,
+        playedMinutes
+      }])
+    ).to.emit(platform, 'PlayedMinutesUpdated');
   }
 
   describe("Deployment", function () {
@@ -79,21 +60,9 @@ describe("Platform", function () {
     });
 
     it('does not allow updating played minutes when one of the addresses is not an artist', async function() {
-      const {
-        platform,
-        coordinator,
-        vrfAdmin,
-        firstAccount,
-        secondAccount
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'Doesnotmatter',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'Doesnotmatter');
 
       await (await platform.addReporter(secondAccount.address)).wait();
 
@@ -117,21 +86,9 @@ describe("Platform", function () {
     });
 
     it('does not allow to update artist played minutes to less than they where before', async function() {
-      const {
-        platform,
-        coordinator,
-        vrfAdmin,
-        firstAccount,
-        secondAccount
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'Doesnotmatter',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'Doesnotmatter');
 
       await (await platform.addReporter(secondAccount.address)).wait();
 
@@ -160,21 +117,9 @@ describe("Platform", function () {
     });
 
     it('stores the initial played minutes', async function() {
-      const {
-        platform,
-        coordinator,
-        vrfAdmin,
-        firstAccount,
-        secondAccount
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'Doesnotmatter',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'Doesnotmatter');
 
       await (await platform.addReporter(secondAccount.address)).wait();
 
@@ -195,21 +140,9 @@ describe("Platform", function () {
     });
 
     it('stores the second update of played minutes', async function() {
-      const {
-        platform,
-        coordinator,
-        vrfAdmin,
-        firstAccount,
-        secondAccount
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'Doesnotmatter',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'Doesnotmatter');
 
       await (await platform.addReporter(secondAccount.address)).wait();
 
@@ -245,41 +178,17 @@ describe("Platform", function () {
 
   describe('Claiming of rewards', function() {
     it('returns unclaimed ether amount', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await setUpArtistForClaimingRewards(
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      );
+      await setUpArtistForClaimingRewards(platform, firstAccount, secondAccount);
 
       expect(await platform.artistUnclaimedAmount(firstAccount.address)).to.eq(2000);
     });
 
     it('does not allow claiming for non-artists', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await setUpArtistForClaimingRewards(
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      );
+      await setUpArtistForClaimingRewards(platform, firstAccount, secondAccount);
 
       expect(await platform.artistUnclaimedAmount(firstAccount.address)).to.eq(2000);
 
@@ -289,21 +198,9 @@ describe("Platform", function () {
     });
 
     it('does not allow claiming when no claimable minutes', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
 
       expect(await platform.artistUnclaimedAmount(firstAccount.address)).to.eq(0);
 
@@ -313,21 +210,9 @@ describe("Platform", function () {
     });
 
     it('claims unclaimed minutes and receives ether', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      await setUpArtistForClaimingRewards(
-        platform,
-        coordinator,
-        firstAccount,
-        secondAccount,
-        vrfAdmin
-      );
+      await setUpArtistForClaimingRewards(platform, firstAccount, secondAccount);
 
       const subscriptionPrice = ethers.utils.parseEther('0.01');
       const subscriptionIncrease = 15*24*60*60; // 15 days

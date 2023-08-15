@@ -1,13 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
 
-const {
-  deployPlatform,
-  initializeArtistRegistration,
-  initializeSongRegistration,
-  fully_register_artist,
-  fully_register_song
-} = require('./utils');
+const { deployPlatform, registerArtist, registerSong } = require('./utils');
 
 describe("ResourceRegistration", function () {
   describe('Artist registration', function () {
@@ -19,124 +13,47 @@ describe("ResourceRegistration", function () {
       ).to.be.revertedWithCustomError(platform, 'ArtistNameRequired');
     });
 
-    it('initializes artist registration', async function () {
-      const { platform, coordinator, firstAccount } = await loadFixture(deployPlatform);
-
-      // Chainlink VRF request id
-      await initializeArtistRegistration(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-      );
-    });
-
     it('reverts when trying to register artist twice from the same account', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
       await expect(
         platform.connect(firstAccount).registerArtist('Other Artist?')
       ).to.be.revertedWithCustomError(platform, 'ArtistAlreadyRegistered');
     });
 
     it('completes artist registration', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
     });
   });
 
   describe('Song registration', function () {
     it('initializes song registration', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
 
       const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
 
-      await initializeSongRegistration(
-        platform,
-        coordinator,
-        firstAccount,
-        ipfsID
-      );
+      await registerSong(platform, firstAccount, ipfsID);
     });
 
     it('completes song registration', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
 
       const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
 
-      await fully_register_song(
-        platform,
-        coordinator,
-        firstAccount,
-        ipfsID
-      );
+      await registerSong(platform, firstAccount, ipfsID);
     });
 
     it('reverts when registering a song without providing uri', async function () {
-      const {
-        platform,
-        coordinator,
-        firstAccount,
-        vrfAdmin
-      } = await loadFixture(deployPlatform);
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
-      await fully_register_artist(
-        platform,
-        coordinator,
-        firstAccount,
-        'First Artist',
-        vrfAdmin
-      );
+      await registerArtist(platform, firstAccount, 'First Artist');
 
       await expect(
         platform.connect(firstAccount).registerSong('')

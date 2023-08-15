@@ -1,27 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { VRFCoordinatorV2Interface } from "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import { VRFConsumerBaseV2 } from "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 
-contract ResourceRegistration is VRFConsumerBaseV2 {
+contract ResourceRegistration {
   enum ResourceType {
     Unknown,
     Artist,
     Song
-  }
-
-  struct Registration {
-    bool completed;
-
-    // Defaults to unknown,
-    // which is also how we can tell if registration has been created
-    ResourceType resourceType;
-
-    address account;
-    uint256 generatedId;
-    // Data is either artist name or song uri
-    string data;
   }
 
   mapping(uint256 id => string name) public artistNames;
@@ -30,24 +16,6 @@ contract ResourceRegistration is VRFConsumerBaseV2 {
   mapping(uint256 id => string uri) private songURIs;
   mapping(address account => uint256[] ids) private songIds;
   mapping(address account => uint256 count) private songsCount;
-
-  // Requests are used for generating IDs (both for an artists and a song)
-  mapping(uint256 requestId => Registration registration) private registrations;
-
-  VRFCoordinatorV2Interface private immutable vrfCoordinator;
-  uint64 private immutable subscriptionId;
-  bytes32 private immutable keyHash;
-
-  // TODO: make sure that this makes sense after finalizing the `fulfillRandomWords()` function
-  uint32 private constant CALLBACK_GAS_LIMIT = 200000;
-  uint16 private constant REQUEST_CONFIRMATIONS = 3;
-  uint32 private constant NUM_WORDS = 1;
-
-  event RegistrationCreated(
-    address indexed account,
-    ResourceType indexed resourceType,
-    uint256 indexed requestId
-  );
 
   // Data is either artist name or song uri
   event ResourceRegistered(
@@ -62,28 +30,18 @@ contract ResourceRegistration is VRFConsumerBaseV2 {
   error SongUriRequired();
   error NotARegisteredArtist();
 
-  constructor(
-    address _vrfCoordinator,
-    uint64 _subscriptionId,
-    bytes32 _keyHash
-  ) VRFConsumerBaseV2(_vrfCoordinator) {
-    vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
-    subscriptionId = _subscriptionId;
-    keyHash = _keyHash;
-  }
-
   function registerArtist(string calldata name) external {
     _requireArtistName(name);
     _requireNotRegistered();
 
-    _createResourceRegistration(ResourceType.Artist, name);
+    _registerArtist(msg.sender, name);
   }
 
   function registerSong(string calldata uri) external {
     _requireUri(uri);
     _requireRegisteredArtist();
 
-    _createResourceRegistration(ResourceType.Song, uri);
+    _registerSong(msg.sender, uri);
   }
 
   // ++++++++++++++++View/Pure functions +++++++++++++++
@@ -118,72 +76,66 @@ contract ResourceRegistration is VRFConsumerBaseV2 {
   }
 
  // +++++++++++++++++++++++++++++++++++++++++++++++++
-
-  function _completeArtistRegistration(Registration memory registration) internal {
-    artistNames[registration.generatedId] = registration.data;
-    artistIds[registration.account] = registration.generatedId;
-
-    emit ResourceRegistered(
-      registration.account,
-      ResourceType.Artist,
-      registration.generatedId,
-      registration.data
-    );
-  }
-
-  function _completeSongRegistration(Registration memory registration) internal {
-    songURIs[registration.generatedId] = registration.data;
-    songIds[registration.account].push(registration.generatedId);
-    songsCount[registration.account]++;
-
-    emit ResourceRegistered(
-      registration.account,
-      ResourceType.Song,
-      registration.generatedId,
-      registration.data
-    );
-  }
-
-  function fulfillRandomWords(
-    uint256 _requestId,
-    uint256[] memory _randomWords
-  ) internal override {
-    Registration storage registration = registrations[_requestId];
-    require(!registration.completed);
-
-    registration.completed = true;
-
-    registration.generatedId = _randomWords[0];
-
-    if (registration.resourceType == ResourceType.Artist) {
-      _completeArtistRegistration(registration);
-    } else if (registration.resourceType == ResourceType.Song) {
-      _completeSongRegistration(registration);
-    } else {
-      revert("Unsupported registration");
+  function _generateRandomBytes() internal view returns (uint256) {
+    // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
+    if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
+        return uint256(
+          bytes32(
+            Sapphire.randomBytes(32, abi.encodePacked(block.timestamp))
+          )
+        );
     }
+
+    return uint256(
+      keccak256(
+        abi.encodePacked(
+          msg.sender,
+          blockhash(block.number),
+          block.timestamp,
+          block.prevrandao,
+          block.coinbase
+        )
+      )
+    );
   }
 
-  function _createResourceRegistration(
-    ResourceType resourceType,
-    string calldata data
-  ) internal {
-    // NOTE: This will revert if subscription is not set and funded.
-    uint256 requestId = vrfCoordinator.requestRandomWords(
-        keyHash,
-        subscriptionId,
-        REQUEST_CONFIRMATIONS,
-        CALLBACK_GAS_LIMIT,
-        NUM_WORDS
+  function _registerArtist(address account, string memory name) internal {
+    uint256 generatedId = _generateRandomBytes();
+
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (bytes(artistNames[generatedId]).length > 0) {
+      uint256 generatedId = _generateRandomBytes();
+    }
+
+    artistNames[generatedId] = name;
+    artistIds[account] = generatedId;
+
+    emit ResourceRegistered(
+      account,
+      ResourceType.Artist,
+      generatedId,
+      name
     );
+  }
 
-    emit RegistrationCreated(msg.sender, resourceType, requestId);
+  function _registerSong(address artist, string memory uri) internal {
+    uint256 generatedId = _generateRandomBytes();
 
-    Registration storage registration = registrations[requestId];
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (bytes(songURIs[generatedId]).length > 0) {
+      uint256 generatedId = _generateRandomBytes();
+    }
 
-    registration.resourceType = resourceType;
-    registration.account = msg.sender;
-    registration.data = data;
+    songURIs[generatedId] = uri;
+    songIds[artist].push(generatedId);
+    songsCount[artist]++;
+
+    emit ResourceRegistered(
+      artist,
+      ResourceType.Song,
+      generatedId,
+      uri
+    );
   }
 
 
