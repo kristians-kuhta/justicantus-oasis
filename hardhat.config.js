@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require('@oasisprotocol/sapphire-hardhat');
 
 require('dotenv').config();
 
