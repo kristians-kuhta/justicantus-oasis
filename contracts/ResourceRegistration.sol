@@ -76,13 +76,35 @@ contract ResourceRegistration {
   }
 
  // +++++++++++++++++++++++++++++++++++++++++++++++++
+  function _generateRandomBytes() internal view returns (uint256) {
+    // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
+    if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
+        return uint256(
+          bytes32(
+            Sapphire.randomBytes(32, abi.encodePacked(block.timestamp))
+          )
+        );
+    }
+
+    return uint256(
+      keccak256(
+        abi.encodePacked(
+          msg.sender,
+          blockhash(block.number),
+          block.timestamp,
+          block.prevrandao,
+          block.coinbase
+        )
+      )
+    );
+  }
 
   function _registerArtist(address account, string memory name) internal {
-    uint256 generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+    uint256 generatedId = _generateRandomBytes();
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
     if (bytes(artistNames[generatedId]).length > 0) {
-      generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+      uint256 generatedId = _generateRandomBytes();
     }
 
     artistNames[generatedId] = name;
@@ -97,11 +119,11 @@ contract ResourceRegistration {
   }
 
   function _registerSong(address artist, string memory uri) internal {
-    uint256 generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+    uint256 generatedId = _generateRandomBytes();
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
     if (bytes(songURIs[generatedId]).length > 0) {
-      generatedId = uint256(bytes32(Sapphire.randomBytes(32, '')));
+      uint256 generatedId = _generateRandomBytes();
     }
 
     songURIs[generatedId] = uri;
