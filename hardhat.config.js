@@ -51,7 +51,14 @@ module.exports = {
     sepolia: {
       url: RPC_PROVIDER_URL || '',
       accounts: [SEPOLIA_PRIVATE_KEY || '']
-    }
+    },
+    sapphire_localnet: {
+      url: 'http://localhost:8545',
+      accounts: process.env.LOCAL_PRIVATE_KEY
+        ? [process.env.LOCAL_PRIVATE_KEY]
+        : [],
+      chainId: 0x5afd
+    },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY
