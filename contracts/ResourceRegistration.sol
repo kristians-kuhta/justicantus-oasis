@@ -104,7 +104,7 @@ contract ResourceRegistration {
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
     if (bytes(artistNames[generatedId]).length > 0) {
-      uint256 generatedId = _generateRandomBytes();
+      generatedId = _generateRandomBytes();
     }
 
     artistNames[generatedId] = name;
@@ -123,7 +123,7 @@ contract ResourceRegistration {
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
     if (bytes(songURIs[generatedId]).length > 0) {
-      uint256 generatedId = _generateRandomBytes();
+      generatedId = _generateRandomBytes();
     }
 
     songURIs[generatedId] = uri;
