@@ -5,13 +5,18 @@ const deployPlatform = async () => {
   const [owner, firstAccount, secondAccount] = await ethers.getSigners();
 
   const Platform = await ethers.getContractFactory("Platform");
-  const platform = await Platform.deploy();
+  const defaultRewards = ethers.utils.parseEther('100');
+
+  const platform = await Platform.deploy(defaultRewards);
+  const justToken = await platform.rewardsToken();
 
   return {
     platform,
     owner,
     firstAccount,
     secondAccount,
+    defaultRewards,
+    justToken,
   };
 }
 

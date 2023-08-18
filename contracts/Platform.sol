@@ -8,9 +8,10 @@ import { ResourceRegistration } from "./ResourceRegistration.sol";
 import { Subscription } from "./Subscription.sol";
 import { Reporter } from "./Reporter.sol";
 import { PlayedMinutesReward } from "./PlayedMinutesReward.sol";
+import { TokenRewards } from "./TokenRewards.sol";
 
 contract Platform is Ownable, ReentrancyGuard, ResourceRegistration, Subscription,
-  Reporter, PlayedMinutesReward {
+  Reporter, PlayedMinutesReward, TokenRewards {
   struct ArtistUpdate {
     address artist;
     uint256 playedMinutes;
@@ -26,7 +27,8 @@ contract Platform is Ownable, ReentrancyGuard, ResourceRegistration, Subscriptio
   error NoClaimableRewards();
   error UpdateInvalid(address artist, uint256 playedMinutes);
 
-  constructor() PlayedMinutesReward() {}
+  constructor(uint256 _rewardsForProposal)
+    PlayedMinutesReward() TokenRewards(_rewardsForProposal) {}
 
   function updatePlayedMinutes(ArtistUpdate[] calldata updates) external {
     _requireAccountIsReporter(msg.sender);
