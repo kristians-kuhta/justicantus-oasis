@@ -27,8 +27,8 @@ contract Platform is Ownable, ReentrancyGuard, ResourceRegistration, Subscriptio
   error NoClaimableRewards();
   error UpdateInvalid(address artist, uint256 playedMinutes);
 
-  constructor(uint256 _rewardsForProposal)
-    PlayedMinutesReward() TokenRewards(_rewardsForProposal) {}
+  constructor(uint256 _rewardsForProposal, uint256 _pricePerToken)
+    PlayedMinutesReward() TokenRewards(_rewardsForProposal, _pricePerToken) {}
 
   function updatePlayedMinutes(ArtistUpdate[] calldata updates) external {
     _requireAccountIsReporter(msg.sender);
