@@ -6,9 +6,12 @@ const deployPlatform = async () => {
 
   const Platform = await ethers.getContractFactory("Platform");
   const defaultRewards = ethers.utils.parseEther('100');
+  const defaultPricePerToken = ethers.utils.parseEther('0.0001');
 
-  const platform = await Platform.deploy(defaultRewards);
-  const justToken = await platform.rewardsToken();
+  const platform = await Platform.deploy(defaultRewards, defaultPricePerToken);
+  const justTokenAddress = await platform.rewardsToken();
+  const JustToken = await ethers.getContractFactory('JustToken');
+  const justToken = await JustToken.attach(justTokenAddress);
 
   return {
     platform,
@@ -16,6 +19,7 @@ const deployPlatform = async () => {
     firstAccount,
     secondAccount,
     defaultRewards,
+    defaultPricePerToken,
     justToken,
   };
 }

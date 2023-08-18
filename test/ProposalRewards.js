@@ -6,7 +6,7 @@ describe('Proposal rewards', function() {
   it('returns the address of the rewards token', async function () {
     const { platform, justToken } = await loadFixture(deployPlatform);
 
-    expect(await platform.rewardsToken()).to.eq(justToken);
+    expect(await platform.rewardsToken()).to.eq(justToken.address);
   });
 
   it('returns rewards per proposal', async function () {
