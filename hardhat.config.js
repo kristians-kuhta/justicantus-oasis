@@ -36,6 +36,7 @@ task(
 const {
   RPC_PROVIDER_URL,
   SEPOLIA_PRIVATE_KEY,
+  LOCAL_PRIVATE_KEY,
   ETHERSCAN_API_KEY
 }  = process.env;
 
@@ -50,13 +51,11 @@ module.exports = {
   networks: {
     sepolia: {
       url: RPC_PROVIDER_URL || '',
-      accounts: [SEPOLIA_PRIVATE_KEY || '']
+      accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : [],
     },
     sapphire_localnet: {
       url: 'http://localhost:8545',
-      accounts: process.env.LOCAL_PRIVATE_KEY
-        ? [process.env.LOCAL_PRIVATE_KEY]
-        : [],
+      accounts: LOCAL_PRIVATE_KEY ? [LOCAL_PRIVATE_KEY] : [],
       chainId: 0x5afd
     },
   },
