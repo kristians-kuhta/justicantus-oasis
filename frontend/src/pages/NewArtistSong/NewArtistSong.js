@@ -12,9 +12,26 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const SONG_RESOURCE_TYPE = 2;
+const SUPPORTED_AUDIO_FORMATS = [
+  'audio/mp3',
+  'audio/aac',
+  'audio/ogg',
+  'audio/wav',
+  'audio/webm',
+  'audio/mpeg',
+];
+
+const isAudioFile = (value) => {
+  if (!value) return;
+
+  const fileType = value[0].type;
+
+  if (!SUPPORTED_AUDIO_FORMATS.includes(fileType)) {
+    return 'Unsupported audio format';
+  }
+}
 
 const NewArtistSong = () => {
-
   const { account, platform, setMessage } = useOutletContext();
   const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
@@ -117,7 +134,9 @@ const NewArtistSong = () => {
           <Form.Label>Audio file</Form.Label>
           <Form.Control
             type="file"
-            {...register("songFile", { required: "must upload song audio file" })}
+            accept="audio/*"
+            {...register("songFile", { required: "must upload song audio file",
+              validate: isAudioFile })}
           />
           {errors.songFile && (
             <Form.Text className="text-danger">
