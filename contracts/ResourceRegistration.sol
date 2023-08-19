@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
+import { Sapphire } from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 
 contract ResourceRegistration {
   enum ResourceType {
@@ -76,29 +76,6 @@ contract ResourceRegistration {
   }
 
  // +++++++++++++++++++++++++++++++++++++++++++++++++
-  function _generateRandomBytes() internal view returns (uint256) {
-    // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
-    if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
-        return uint256(
-          bytes32(
-            Sapphire.randomBytes(32, abi.encodePacked(block.timestamp))
-          )
-        );
-    }
-
-    return uint256(
-      keccak256(
-        abi.encodePacked(
-          msg.sender,
-          blockhash(block.number),
-          block.timestamp,
-          block.prevrandao,
-          block.coinbase
-        )
-      )
-    );
-  }
-
   function _registerArtist(address account, string memory name) internal {
     uint256 generatedId = _generateRandomBytes();
 
@@ -135,6 +112,29 @@ contract ResourceRegistration {
       ResourceType.Song,
       generatedId,
       uri
+    );
+  }
+
+  function _generateRandomBytes() internal view returns (uint256) {
+    // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
+    if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
+        return uint256(
+          bytes32(
+            Sapphire.randomBytes(32, abi.encodePacked(block.timestamp))
+          )
+        );
+    }
+
+    return uint256(
+      keccak256(
+        abi.encodePacked(
+          msg.sender,
+          blockhash(block.number),
+          block.timestamp,
+          block.prevrandao,
+          block.coinbase
+        )
+      )
     );
   }
 
