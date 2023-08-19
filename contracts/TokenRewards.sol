@@ -16,6 +16,7 @@ contract TokenRewards is Ownable {
   error ValueCannotBeZero();
   error AmountCannotBeZero();
   error AmountMustMatchValueExactly();
+  error InsufficientTokenBalance();
 
   event RewardsPerProposalUpdated(uint256 rewards);
   event PricePerTokenUpdated(uint256 price);
@@ -81,8 +82,20 @@ contract TokenRewards is Ownable {
     _requireValue();
     _requireValueMatchesAmount(_amount);
 
-    //TODO: maybe we should check the return value of this?
+    // TODO: maybe we should check the return value of this?
+    // TODO: check if enough balance, else mint only the missing tokens
     rewardsToken.mint(msg.sender, _amount);
     // NOTE: no extra events are emitted, OZ ERC20 already emits an Transfer event
+  }
+
+  function sellTokens(uint256 _amount, address _receiver) external {
+    _requireAmountNotZero(_amount);
+
+    // NOTE: owners must approve before we can do this
+    rewardsToken.transferFrom(msg.sender, address(this), _amount);
+
+    uint256 payout = _amount * pricePerToken;
+    (bool success,) = payable(_receiver).call{ value: payout }('');
+    require(success);
   }
 }

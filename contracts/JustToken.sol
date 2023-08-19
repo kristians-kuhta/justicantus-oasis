@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import "./Platform.sol";
 
 contract JustToken is ERC20, Ownable {
   constructor() ERC20('JUST token', 'JUST') {}
