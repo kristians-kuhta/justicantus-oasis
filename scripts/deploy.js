@@ -37,10 +37,14 @@ function saveFrontendFiles(platform) {
 async function main() {
   const Platform = await hre.ethers.getContractFactory('Platform');
 
-  const { NODE_ENV } = process.env;
+  const {
+    NODE_ENV,
+    REWARDS_FOR_PROPOSAL,
+    PRICE_PER_TOKEN,
+  } = process.env;
 
   console.log('[Deploy] Deploying platform...');
-  platform = await Platform.deploy();
+  platform = await Platform.deploy(REWARDS_FOR_PROPOSAL, PRICE_PER_TOKEN);
   console.log('[Deploy] Deploy tx send...');
 
   await platform.deployed();
@@ -50,7 +54,7 @@ async function main() {
   saveFrontendFiles(platform);
 
   console.log(
-    `[Deploy] DONE!\nPlatform deployed to ${platform.address}`
+    `[Deploy] DONE!\nPlatform deployed to ${platform.address} with rewards for proposal of ${REWARDS_FOR_PROPOSAL} and price per token of ${PRICE_PER_TOKEN}`
   );
 }
 
