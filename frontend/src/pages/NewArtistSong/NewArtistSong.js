@@ -112,14 +112,17 @@ const NewArtistSong = () => {
   }
 
   const onSubmit = async (data) => {
+    const { songFile, songTitle, songExclusive, songExclusivePrice } = data;
+
     try {
       platform.on('ResourceRegistered', handleResourceRegisteredEvent);
 
       setProgress(25);
-      const ipfsHash = await uploadSongToIpfs(data.songTitle, data.songFile[0]);
+      const ipfsHash = await uploadSongToIpfs(songTitle, songFile[0]);
 
       // TODO: figure out the actual gas needed here
-      await platform.registerSong(ipfsHash, { gasLimit: 225000 });
+      const exclusivePrice = songExclusive ? songExclusivePrice : 0;
+      await platform.registerSong(ipfsHash, exclusivePrice, { gasLimit: 225000 });
 
       setProgress(75);
     } catch (e) {
