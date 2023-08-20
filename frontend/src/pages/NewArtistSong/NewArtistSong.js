@@ -3,7 +3,9 @@ import {
   Container,
   Form,
   Button,
-  ProgressBar
+  ProgressBar,
+  Row,
+  Col,
 } from 'react-bootstrap';
 
 import { useForm } from 'react-hook-form';
@@ -34,6 +36,9 @@ const isAudioFile = (value) => {
 const NewArtistSong = () => {
   const { account, platform, setMessage } = useOutletContext();
   const [progress, setProgress] = useState(0);
+  const [exclusivePriceRequired, setExclusivePriceRequired] = useState(false);
+  const [exclusivePriceEth, setExclusivePriceEth] = useState(0);
+  const [currentEthPrice, setCurrentEthPrice] = useState(0);
   const navigate = useNavigate();
 
   const {
@@ -86,6 +91,25 @@ const NewArtistSong = () => {
       });
     }
   };
+
+  const handleExclusiveChange = ({target}) => {
+    setExclusivePriceRequired(target.checked);
+  };
+
+  const handleExclusivePriceChange = (evt) => {
+    const price = evt.target.value;
+    setExclusivePriceEth(price);
+
+    if (currentEthPrice) return;
+
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum').
+      then((res) => res.json()).
+      then((data) => setCurrentEthPrice(data[0].current_price));
+  };
+
+  const exclusivePriceUsd = () => {
+    return currentEthPrice ? (currentEthPrice * exclusivePriceEth).toFixed(2): 0;
+  }
 
   const onSubmit = async (data) => {
     try {
@@ -144,6 +168,44 @@ const NewArtistSong = () => {
             </Form.Text>
           )}
         </Form.Group>
+
+        <Form.Group className="mb-3" controlId="formSongExclusive">
+          <Form.Check inline id="exclusiveCheckbox" className="pl-5">
+            <Form.Check.Input onInput={handleExclusiveChange} {...register("songExclusive")} />
+            <Form.Check.Label>Exclusive song</Form.Check.Label>
+          </Form.Check>
+        </Form.Group>
+
+        { exclusivePriceRequired &&
+          <Form.Group className="mb-3" controlId="formSongExclusivePrice">
+            <Form.Label>Price (ETH)</Form.Label>
+            <Row>
+              <Col>
+                <Form.Control
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  onInput={handleExclusivePriceChange}
+                  {...register("songExclusivePrice", {
+                    required: "exclusive song must have price in ETH",
+                    min: {
+                      value: '0.001',
+                      message: 'price must be at least 0.001 ETH'
+                    }
+                  })}
+                />
+                {errors.songExclusivePrice && (
+                  <Form.Text className="text-danger">
+                    {errors.songExclusivePrice.message}
+                  </Form.Text>
+                )}
+              </Col>
+              <Col className="mt-auto mb-auto text-muted">
+                approx. { exclusivePriceUsd() } USD
+              </Col>
+            </Row>
+          </Form.Group>
+        }
 
         <Button variant="primary" type="submit" disabled={progress > 0 || !isDirty || !isValid} >
           Register
