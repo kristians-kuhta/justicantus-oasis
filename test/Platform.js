@@ -14,7 +14,7 @@ describe("Platform", function () {
     const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
     const playedMinutes = 1000;
 
-    await registerSong(platform, firstAccount, ipfsID);
+    await registerSong(platform, firstAccount, ipfsID, 0);
 
     await expect(
       platform.setRewardForPlayedMinute(2)

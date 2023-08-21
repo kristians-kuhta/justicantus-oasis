@@ -16,6 +16,7 @@ contract ResourceRegistration {
   mapping(uint256 id => string uri) private songURIs;
   mapping(address account => uint256[] ids) private songIds;
   mapping(address account => uint256 count) private songsCount;
+  mapping(uint256 id => uint256 price) public exclusiveSongPrices;
 
   // Data is either artist name or song uri
   event ResourceRegistered(
@@ -37,11 +38,12 @@ contract ResourceRegistration {
     _registerArtist(msg.sender, name);
   }
 
-  function registerSong(string calldata uri) external {
+  // NOTE: to register, non-exclusive (default) song pass a price of 0
+  function registerSong(string calldata uri, uint256 exclusivePrice) external {
     _requireUri(uri);
     _requireRegisteredArtist();
 
-    _registerSong(msg.sender, uri);
+    _registerSong(msg.sender, uri, exclusivePrice);
   }
 
   // ++++++++++++++++View/Pure functions +++++++++++++++
@@ -95,7 +97,7 @@ contract ResourceRegistration {
     );
   }
 
-  function _registerSong(address artist, string memory uri) internal {
+  function _registerSong(address artist, string memory uri, uint256 exclusivePrice) internal {
     uint256 generatedId = _generateRandomBytes();
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
@@ -106,6 +108,7 @@ contract ResourceRegistration {
     songURIs[generatedId] = uri;
     songIds[artist].push(generatedId);
     songsCount[artist]++;
+    exclusiveSongPrices[generatedId] = exclusivePrice;
 
     emit ResourceRegistered(
       artist,
