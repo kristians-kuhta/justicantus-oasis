@@ -2,8 +2,9 @@
 pragma solidity 0.8.19;
 
 import { Sapphire } from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
+import { SharedStorage } from "./SharedStorage.sol";
 
-contract ResourceRegistration {
+contract ResourceRegistration is SharedStorage {
   enum ResourceType {
     Unknown,
     Artist,
@@ -11,12 +12,6 @@ contract ResourceRegistration {
   }
 
   mapping(uint256 id => string name) public artistNames;
-  mapping(address account => uint256 id) public artistIds;
-
-  mapping(uint256 id => string uri) private songURIs;
-  mapping(address account => uint256[] ids) private songIds;
-  mapping(address account => uint256 count) private songsCount;
-  mapping(uint256 id => uint256 price) public exclusiveSongPrices;
 
   // Data is either artist name or song uri
   event ResourceRegistered(
@@ -29,7 +24,6 @@ contract ResourceRegistration {
   error ArtistNameRequired();
   error ArtistAlreadyRegistered();
   error SongUriRequired();
-  error NotARegisteredArtist();
 
   function registerArtist(string calldata name) external {
     _requireArtistName(name);
@@ -61,16 +55,6 @@ contract ResourceRegistration {
 
   function getArtistSongId(address artist, uint256 songIndex) external view returns (uint256) {
     return songIds[artist][songIndex];
-  }
-
-  function isArtistSong(address artist, uint256 songId) external view returns (bool) {
-    uint256 artistSongsCount = songsCount[artist];
-    for(uint256 i; i < artistSongsCount; i++) {
-      if (songIds[artist][i] == songId) {
-        return true;
-      }
-    }
-    return false;
   }
 
   function getArtistSongsCount(address artist) external view returns (uint256) {
@@ -145,12 +129,6 @@ contract ResourceRegistration {
   function _requireNotRegistered() internal view {
     if (artistIds[msg.sender] > 0) {
       revert ArtistAlreadyRegistered();
-    }
-  }
-
-  function _requireRegisteredArtist() internal view {
-    if (artistIds[msg.sender] == 0) {
-      revert NotARegisteredArtist();
     }
   }
 
