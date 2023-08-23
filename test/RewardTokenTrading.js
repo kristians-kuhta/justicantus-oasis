@@ -1,20 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
-const { deployPlatform } = require('./utils');
+const { deployPlatform, buyTokens } = require('./utils');
 const { BigNumber } = ethers;
-
-async function buyTokens(platform, justToken, account, tokensCount) {
-  const oneTokenPrice = await platform.pricePerToken();
-  const tokensCost = tokensCount * oneTokenPrice;
-
-  await expect(
-    platform.connect(account).buyTokens(tokensCount, { value: tokensCost })
-  ).to.emit(justToken, 'Transfer').withArgs(
-    ethers.constants.AddressZero,
-    account.address,
-    tokensCount
-  );
-};
 
 describe('Reward token trading', function() {
   describe('Token pricing', function() {
@@ -92,16 +79,25 @@ describe('Reward token trading', function() {
     it('reverts when trying to sell more tokens than owned', async function () {
       const { platform, justToken, secondAccount } = await loadFixture(deployPlatform);
 
-      const ownedTokens = 2;
+      const decimals = await justToken.decimals();
+      const fractionsPerToken = BigNumber.from(10).pow(decimals)
+      const ownedTokens = BigNumber.from(2);
+      const ownedFractionalTokens = ownedTokens.mul(fractionsPerToken);
 
       await buyTokens(platform, justToken, secondAccount, ownedTokens);
 
-      await ( await justToken.connect(secondAccount).approve(platform.address, ownedTokens + 1)).wait();
+      const sellingTokens = ownedTokens + 1;
+      const sellingFractionalTokens = ownedFractionalTokens + BigNumber.from(1).mul(fractionsPerToken);
+
+      await (
+        await justToken.connect(secondAccount).approve(
+          platform.address,
+          sellingFractionalTokens
+        )
+      ).wait();
 
       await expect(
-        platform.connect(secondAccount).sellTokens(
-          ownedTokens + 1, secondAccount.address
-        )
+        platform.connect(secondAccount).sellTokens(sellingTokens, secondAccount.address)
       ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
 
@@ -111,33 +107,39 @@ describe('Reward token trading', function() {
     it('sells specified amount of tokens', async function () {
       const { platform, justToken, secondAccount } = await loadFixture(deployPlatform);
 
+      const decimals = await justToken.decimals();
+      const fractionsPerToken = BigNumber.from(10).pow(decimals);
+
       const ownedTokens = BigNumber.from(3);
+      const ownedFractionalTokens = ownedTokens.mul(fractionsPerToken);
       const soldTokens = ownedTokens.sub(1);
+      const soldFractionalTokens = soldTokens.mul(fractionsPerToken);
 
       await buyTokens(platform, justToken, secondAccount, ownedTokens);
 
-      expect(await justToken.balanceOf(secondAccount.address)).to.eq(ownedTokens);
+      expect(await justToken.balanceOf(secondAccount.address)).to.eq(ownedFractionalTokens);
       expect(await justToken.balanceOf(platform.address)).to.eq(0);
 
-      await ( await justToken.connect(secondAccount).approve(platform.address, soldTokens)).wait();
+      await ( await justToken.connect(secondAccount).approve(platform.address, soldFractionalTokens)).wait();
 
       const accountEthBalanceBefore = await ethers.provider.getBalance(secondAccount.address);
       const platformEthBalanceBefore = await ethers.provider.getBalance(platform.address);
 
-      const tx = platform.connect(secondAccount).sellTokens(soldTokens, secondAccount.address)
+      const tx = platform.connect(secondAccount).sellTokens(soldTokens, secondAccount.address);
       await expect(tx).to.emit(justToken, 'Transfer').withArgs(
         secondAccount.address,
         platform.address,
-        soldTokens
+        soldFractionalTokens
       );
 
       const txReceipt = await (await tx).wait();
       const txCost = txReceipt.gasUsed.mul(txReceipt.effectiveGasPrice);
 
-      expect(await justToken.balanceOf(secondAccount.address)).to.eq(
-        ownedTokens.sub(soldTokens)
-      );
-      expect(await justToken.balanceOf(platform.address)).to.eq(soldTokens);
+      const remainingTokens = ownedTokens.sub(soldTokens);
+      const remainingFractionalTokens = remainingTokens.mul(fractionsPerToken);
+
+      expect(await justToken.balanceOf(secondAccount.address)).to.eq(remainingFractionalTokens);
+      expect(await justToken.balanceOf(platform.address)).to.eq(soldFractionalTokens);
 
       const accountEthBalanceAfter = await ethers.provider.getBalance(secondAccount.address);
       const platformEthBalanceAfter = await ethers.provider.getBalance(platform.address);
