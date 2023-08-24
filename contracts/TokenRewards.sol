@@ -75,12 +75,6 @@ contract TokenRewards is Ownable, SharedStorage {
     require(success);
   }
 
-  function _requireValue() internal view {
-    if (msg.value == 0) {
-      revert ValueCannotBeZero();
-    }
-  }
-
   function _requireValueMatchesAmount(uint256 _wholeTokens) internal view {
     uint256 cost = _wholeTokens * pricePerToken;
 
