@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
+import { Sapphire } from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 
 contract ResourceRegistration {
   enum ResourceType {
@@ -76,6 +76,45 @@ contract ResourceRegistration {
   }
 
  // +++++++++++++++++++++++++++++++++++++++++++++++++
+  function _registerArtist(address account, string memory name) internal {
+    uint256 generatedId = _generateRandomBytes();
+
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (bytes(artistNames[generatedId]).length > 0) {
+      generatedId = _generateRandomBytes();
+    }
+
+    artistNames[generatedId] = name;
+    artistIds[account] = generatedId;
+
+    emit ResourceRegistered(
+      account,
+      ResourceType.Artist,
+      generatedId,
+      name
+    );
+  }
+
+  function _registerSong(address artist, string memory uri) internal {
+    uint256 generatedId = _generateRandomBytes();
+
+    // NOTE: this might be needed, because the generator seems to be pseudo-random
+    if (bytes(songURIs[generatedId]).length > 0) {
+      generatedId = _generateRandomBytes();
+    }
+
+    songURIs[generatedId] = uri;
+    songIds[artist].push(generatedId);
+    songsCount[artist]++;
+
+    emit ResourceRegistered(
+      artist,
+      ResourceType.Song,
+      generatedId,
+      uri
+    );
+  }
+
   function _generateRandomBytes() internal view returns (uint256) {
     // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
     if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
@@ -96,45 +135,6 @@ contract ResourceRegistration {
           block.coinbase
         )
       )
-    );
-  }
-
-  function _registerArtist(address account, string memory name) internal {
-    uint256 generatedId = _generateRandomBytes();
-
-    // NOTE: this might be needed, because the generator seems to be pseudo-random
-    if (bytes(artistNames[generatedId]).length > 0) {
-      uint256 generatedId = _generateRandomBytes();
-    }
-
-    artistNames[generatedId] = name;
-    artistIds[account] = generatedId;
-
-    emit ResourceRegistered(
-      account,
-      ResourceType.Artist,
-      generatedId,
-      name
-    );
-  }
-
-  function _registerSong(address artist, string memory uri) internal {
-    uint256 generatedId = _generateRandomBytes();
-
-    // NOTE: this might be needed, because the generator seems to be pseudo-random
-    if (bytes(songURIs[generatedId]).length > 0) {
-      uint256 generatedId = _generateRandomBytes();
-    }
-
-    songURIs[generatedId] = uri;
-    songIds[artist].push(generatedId);
-    songsCount[artist]++;
-
-    emit ResourceRegistered(
-      artist,
-      ResourceType.Song,
-      generatedId,
-      uri
     );
   }
 
