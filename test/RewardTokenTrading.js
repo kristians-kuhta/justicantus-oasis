@@ -102,6 +102,18 @@ describe('Reward token trading', function() {
     });
 
     it('reverts when selling tokens without approving them first', async function () {
+      const { platform, justToken, secondAccount } = await loadFixture(deployPlatform);
+
+      const ownedTokens = 2;
+
+      await buyTokens(platform, justToken, secondAccount, ownedTokens);
+
+      await expect(
+        platform.connect(secondAccount).sellTokens(
+          ownedTokens,
+          secondAccount.address
+        )
+      ).to.be.revertedWith('ERC20: insufficient allowance');
     });
 
     it('sells specified amount of tokens', async function () {
