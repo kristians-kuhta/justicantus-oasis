@@ -12,22 +12,30 @@ function saveFrontendFiles(platform) {
 
   // `artifacts` is a helper property provided by Hardhat to read artifacts
   const PlatformArtifact = artifacts.readArtifactSync("Platform");
+  const JustTokenArtifact = artifacts.readArtifactSync("JustToken");
 
-  contractsDirs.forEach((contractsDir) => {
+  contractsDirs.forEach(async (contractsDir) => {
     const contractsPath = path.join(__dirname, contractsDir);
 
     if (!fs.existsSync(contractsPath)) {
       fs.mkdirSync(contractsPath);
     }
 
+    const justTokenAddress = await platform.rewardsToken();
+
     fs.writeFileSync(
       contractsPath + "/contract-addresses.json",
-      JSON.stringify({ Platform: platform.address }, null, 2)
+      JSON.stringify({ Platform: platform.address, JustToken: justTokenAddress }, null, 2)
     );
 
     fs.writeFileSync(
       contractsPath + "/Platform.json",
       JSON.stringify(PlatformArtifact, null, 2)
+    );
+
+    fs.writeFileSync(
+      contractsPath + "/JustToken.json",
+      JSON.stringify(JustTokenArtifact, null, 2)
     );
 
     console.log(`Artifacts written to ${contractsPath} directory`);
