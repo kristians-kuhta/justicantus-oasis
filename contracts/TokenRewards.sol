@@ -66,12 +66,6 @@ contract TokenRewards is Ownable {
     require(success);
   }
 
-  function _requireValue() internal view {
-    if (msg.value == 0) {
-      revert ValueCannotBeZero();
-    }
-  }
-
   function _requireValueMatchesAmount(uint256 _amount) internal view {
     if (_amount * pricePerToken != msg.value) {
       revert AmountMustMatchValueExactly();
