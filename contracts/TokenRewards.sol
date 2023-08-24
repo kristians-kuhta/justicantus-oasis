@@ -48,7 +48,6 @@ contract TokenRewards is Ownable, SharedStorage {
   // Question: do we allow non-subscribers to purchase tokens? Currently, yes.
   function buyTokens(uint256 _wholeTokens) external payable {
     _requireAmountNotZero(_wholeTokens);
-    _requireValue();
     _requireValueMatchesAmount(_wholeTokens);
 
     // TODO: maybe we should check the return value of this?
