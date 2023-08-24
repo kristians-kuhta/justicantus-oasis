@@ -5,6 +5,7 @@ import NetworkSwitchModal from '../NetworkSwitchModal/NetworkSwitchModal.js';
 import { Outlet } from 'react-router-dom';
 import contractAddresses from "../../contracts/contract-addresses.json";
 import PlatformArtifact from "../../contracts/Platform.json";
+import JustTokenArtifact from "../../contracts/JustToken.json";
 import { ethers } from "ethers";
 
 import Alert from 'react-bootstrap/Alert';
@@ -60,9 +61,15 @@ export const appLoader = async () => {
   if (!networkSwitchNeccessary) {
 
     const platform = new ethers.Contract(
-      contractAddresses.Platform, // contract address
-      PlatformArtifact.abi, // contract abi (meta-data)
-      provider.getSigner(0) // Signer object signs and sends transactions
+      contractAddresses.Platform,
+      PlatformArtifact.abi,
+      provider.getSigner(0)
+    );
+
+    const justToken = new ethers.Contract(
+      contractAddresses.JustToken,
+      JustTokenArtifact.abi,
+      provider.getSigner(0)
     );
 
     const artistId = await platform.artistIds(account);
@@ -73,6 +80,7 @@ export const appLoader = async () => {
     return {
       account,
       platform,
+      justToken,
       provider,
       artistData,
       subscriberData: activeSubscriber ? account : null,
@@ -112,6 +120,7 @@ function App() {
   const {
     account,
     platform,
+    justToken,
     provider,
     artistData,
     subscriberData,
@@ -138,6 +147,7 @@ function App() {
   const outletContext = {
     account,
     platform,
+    justToken,
     setMessage,
     loggedInArtist,
     setLoggedInArtist,

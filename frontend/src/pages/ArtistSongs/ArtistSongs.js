@@ -3,8 +3,11 @@ import axios from 'axios';
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
+import Badge from 'react-bootstrap/Badge';
 
 import { PlayFill, PauseFill } from 'react-bootstrap-icons';
+
+import { BigNumber } from 'ethers';
 
 const {
   REACT_APP_IPFS_API_URL,
@@ -20,32 +23,70 @@ const PlayControls = ({songId, playing, subscriber, handleSongPlay}) => {
   return <PlayFill onClick={() => handleSongPlay(songId, subscriber)}></PlayFill>;
 };
 
-const Song = ({song, playable, subscriber, handleSongPlay}) => {
+const Song = ({
+  song,
+  playable,
+  canBePurchased,
+  purchased,
+  exclusivePrice,
+  subscriber,
+  handleSongPlay,
+  handleSongBuy
+}) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
         {song.title}
         {
           playable &&
             <PlayControls songId={song.id} playing={song.playing} subscriber={subscriber} handleSongPlay={handleSongPlay} />
         }
+
+    { purchased && <Badge bg="success">Owned</Badge> }
+    { canBePurchased &&
+        <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
+    }
       </ListGroup.Item>;
 };
 
-const ArtistSongsList = ({ songs, accountIsArtist, subscriber, handleSongPlay }) => {
-  const songListItems = () => {
-    return songs.map((song) => {
-      const playable = (subscriber || accountIsArtist());
-      return <Song key={song.id} song={song} playable={playable} subscriber={subscriber} handleSongPlay={handleSongPlay} />;
-    });
-  };
+const ArtistSongsList = ({
+  songs,
+  account,
+  accountIsArtist,
+  subscriber,
+  handleSongPlay,
+  handleSongBuy,
+  platform,
+}) => {
+  const [songItems, setSongItems] = useState([]);
+  const [progress, setProgress] = useState(0);
 
-  return <ListGroup variant='flush'>{songListItems()}</ListGroup>;
+  useEffect(() => {
+    Promise.all(songs.map(async (song) => {
+      const exclusivePrice = await platform.exclusiveSongPrices(song.id);
+      const isExclusive = exclusivePrice.gt(BigNumber.from(0));
+
+      const songPurchased = await platform.isSongPurchased(account, song.id);
+      const playable = (isExclusive && songPurchased) ||
+        (subscriber && !isExclusive) ||
+        accountIsArtist();
+
+      const canBePurchased = !accountIsArtist() && isExclusive && !songPurchased;
+
+      return <Song key={song.id} song={song} playable={playable} exclusivePrice={exclusivePrice}
+        subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
+        handleSongBuy={handleSongBuy} />;
+    })).then(setSongItems);
+  }, [setSongItems, accountIsArtist, handleSongPlay, handleSongBuy, platform, songs, subscriber]);
+
+  return songItems.length > 0 ? <ListGroup variant='flush'>{songItems}</ListGroup> : null;
 };
 
 const ArtistSongs = () => {
-  const { platform, account, subscriber } = useOutletContext();
+  const { platform, justToken, account, subscriber, setMessage } = useOutletContext();
   const navigate = useNavigate();
-  const [songs, setSongs] = useState([]);
   const { artistAddress } = useParams();
+
+  const [songs, setSongs] = useState([]);
+  const [progress, setProgress] = useState(0);
   const [trackingInterval, setTrackingInterval] = useState(null);
   const [playbackEndedSongId, setPlaybackEndedSongId] = useState(null);
 
@@ -137,19 +178,63 @@ const ArtistSongs = () => {
 
   const navigateToNewSong = () => {
     navigate(`/artists/${artistAddress}/songs/new`);
-  }
+  };
+
+  const handleSongBuy = async (songId) => {
+    const price = await platform.exclusiveSongPrices(songId);
+    const tokenBalance = await justToken.balanceOf(account);
+
+    if (tokenBalance.lt(price)) {
+      const missingTokens = price.sub(tokenBalance);
+      setMessage({
+        text: `You need to buy ${missingTokens} JUST tokens to purchase this song!`,
+        type: 'danger'
+      });
+      return;
+    }
+
+    setProgress(25);
+
+    try {
+      await justToken.approve(platform.address, price);
+
+      setProgress(50);
+
+      const txReceipt = await platform.buySong(artistAddress, songId);
+
+      setProgress(75);
+
+      await txReceipt.wait();
+
+      setProgress(100);
+
+      setMessage({
+        text: `Song purchased!`,
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setMessage({
+        text: `Could not purchase the song!`,
+        type: 'danger'
+      });
+    }
+  };
 
   const accountIsArtist = () => {
     return account === artistAddress.toLowerCase();
   };
 
   return <>
-    { accountIsArtist  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
+    { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
-       songs={songs}
-       accountIsArtist={accountIsArtist}
-       subscriber={subscriber}
-       handleSongPlay={handleSongPlay}
+      songs={songs}
+      account={account}
+      accountIsArtist={accountIsArtist}
+      subscriber={subscriber}
+      handleSongPlay={handleSongPlay}
+      handleSongBuy={handleSongBuy}
+      platform={platform}
     />
   </>;
 };

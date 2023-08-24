@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Form,
@@ -10,8 +10,11 @@ import {
 
 import { useForm } from 'react-hook-form';
 import { useOutletContext, useNavigate } from 'react-router-dom';
+import * as ethers from 'ethers';
 
 import axios from 'axios';
+
+const { BigNumber } = ethers;
 
 const SONG_RESOURCE_TYPE = 2;
 const SUPPORTED_AUDIO_FORMATS = [
@@ -37,8 +40,9 @@ const NewArtistSong = () => {
   const { account, platform, setMessage } = useOutletContext();
   const [progress, setProgress] = useState(0);
   const [exclusivePriceRequired, setExclusivePriceRequired] = useState(false);
-  const [exclusivePriceEth, setExclusivePriceEth] = useState(0);
-  const [currentEthPrice, setCurrentEthPrice] = useState(0);
+  const [exclusivePrice, setExclusivePrice] = useState(BigNumber.from(0));
+  const [currentEthPrice, setCurrentEthPrice] = useState(BigNumber.from(0));
+  const [pricePerToken, setPricePerToken] = useState(BigNumber.from(0));
   const navigate = useNavigate();
 
   const {
@@ -48,6 +52,16 @@ const NewArtistSong = () => {
   } = useForm({
     mode: "onChange"
   });
+
+
+  useEffect(() => {
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum').
+      then((res) => res.json()).
+      then((data) => setCurrentEthPrice(BigNumber.from(data[0].current_price.toFixed())));
+
+    platform.pricePerToken().then((price) => setPricePerToken(price));
+
+  }, [platform, setCurrentEthPrice, setPricePerToken]);
 
   const handleResourceRegisteredEvent = async (creator, resourceType, assignedId) => {
     const accountLowercase = account.toLowerCase();
@@ -97,19 +111,25 @@ const NewArtistSong = () => {
   };
 
   const handleExclusivePriceChange = (evt) => {
-    const price = evt.target.value;
-    setExclusivePriceEth(price);
+    let price;
+    try {
+      price = BigNumber.from(parseInt(evt.target.value));
+    } catch {
+      price = BigNumber.from(0);
+    }
 
-    if (currentEthPrice) return;
-
-    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum').
-      then((res) => res.json()).
-      then((data) => setCurrentEthPrice(data[0].current_price));
+    setExclusivePrice(price);
   };
 
   const exclusivePriceUsd = () => {
-    return currentEthPrice ? (currentEthPrice * exclusivePriceEth).toFixed(2): 0;
-  }
+    const zero = BigNumber.from(0);
+    if (currentEthPrice.eq(zero) || exclusivePrice.eq(zero)) return 0;
+
+    const priceInWei = exclusivePrice.mul(pricePerToken);
+    const priceInEth = ethers.utils.formatEther(priceInWei);
+
+    return ethers.utils.formatEther(currentEthPrice.mul(priceInWei));
+  };
 
   const onSubmit = async (data) => {
     const { songFile, songTitle, songExclusive, songExclusivePrice } = data;
@@ -121,8 +141,8 @@ const NewArtistSong = () => {
       const ipfsHash = await uploadSongToIpfs(songTitle, songFile[0]);
 
       // TODO: figure out the actual gas needed here
-      const exclusivePrice = songExclusive ? songExclusivePrice : 0;
-      await platform.registerSong(ipfsHash, exclusivePrice, { gasLimit: 225000 });
+      const exclusivePriceJUST = songExclusive ? songExclusivePrice : 0;
+      await platform.registerSong(ipfsHash, exclusivePriceJUST, { gasLimit: 225000 });
 
       setProgress(75);
     } catch (e) {
@@ -181,19 +201,22 @@ const NewArtistSong = () => {
 
         { exclusivePriceRequired &&
           <Form.Group className="mb-3" controlId="formSongExclusivePrice">
-            <Form.Label>Price (ETH)</Form.Label>
+            <Form.Label>Price (JUST)</Form.Label>
             <Row>
               <Col>
                 <Form.Control
                   type="number"
-                  step="0.001"
-                  min="0.001"
+                  step="1"
+                  min="1"
                   onInput={handleExclusivePriceChange}
                   {...register("songExclusivePrice", {
-                    required: "exclusive song must have price in ETH",
+                    required: "exclusive song must have price in JUST (whole numbers)",
                     min: {
-                      value: '0.001',
-                      message: 'price must be at least 0.001 ETH'
+                      value: '1',
+                      message: 'price must be at least 1 JUST'
+                    },
+                    validate: {
+                      onlyIntegers: (v) => parseInt(v) == v || 'must be an integer'
                     }
                   })}
                 />
