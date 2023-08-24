@@ -52,7 +52,7 @@ describe('Reward token trading', function() {
 
       await expect(
         platform.buyTokens(123)
-      ).to.be.revertedWithCustomError(platform, 'ValueCannotBeZero');
+      ).to.be.revertedWithCustomError(platform, 'AmountMustMatchValueExactly');
     });
 
     it('reverts when trying to buy more tokens than provided value', async function () {
