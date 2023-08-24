@@ -1,4 +1,3 @@
-// TODO: test that only owner can mint
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
 const { deployPlatform } = require('./utils');
