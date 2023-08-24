@@ -18,6 +18,42 @@ task(
   }
 );
 
+task('remove_reporter', 'Remove a reporter account').addPositionalParam('reporter').setAction(
+  async ({ reporter }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.removeReporter(reporter, { gasLimit: 300000 })).wait();
+    console.log(`Removed a reporter: ${reporter}`);
+  }
+);
+
+task('set_rewards_per_proposal', 'Set rewards for proposal').addPositionalParam('rewards').setAction(
+  async ({ rewards }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.setRewardsPerProposal(rewards, { gasLimit: 300000 })).wait();
+    console.log(`Set rewards per proposal: ${rewards}`);
+  }
+);
+
+task('set_price_per_token', 'Set price per token').addPositionalParam('price').setAction(
+  async ({ price }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.setPricePerToken(price, { gasLimit: 300000 })).wait();
+    console.log(`Set price per token: ${price}`);
+  }
+);
+
 task(
   'add_reporter',
   'Add a reporter account'
@@ -38,7 +74,7 @@ const {
   SEPOLIA_PRIVATE_KEY,
   LOCAL_PRIVATE_KEY,
   ETHERSCAN_API_KEY
-}  = process.env;
+} = process.env;
 
 module.exports = {
   solidity: "0.8.19",
