@@ -6,6 +6,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ResourceRegistration } from "./ResourceRegistration.sol";
 import { Subscription } from "./Subscription.sol";
 import { Reporter } from "./Reporter.sol";
+import { Encryptor } from "./Encryptor.sol";
 import { PlayedMinutesReward } from "./PlayedMinutesReward.sol";
 import { TokenRewards } from "./TokenRewards.sol";
 import { ClaimingRewards } from "./ClaimingRewards.sol";
@@ -18,6 +19,7 @@ contract Platform is
   ResourceRegistration,
   Subscription,
   Reporter,
+  Encryptor,
   PlayedMinutesReward,
   TokenRewards,
   ClaimingRewards,

@@ -21,13 +21,21 @@ contract SharedStorage {
   mapping(uint256 id => uint256 price) public exclusiveSongPrices;
 
   mapping(address account => bool isReporter) internal reporters;
+  mapping(address account => bool isEncryptor) internal encryptors;
 
   error NotARegisteredArtist();
   error AccountNotReporter();
+  error AccountNotEncryptor();
 
   function _requireAccountIsReporter(address account) internal view {
     if (!reporters[account]) {
       revert AccountNotReporter();
+    }
+  }
+
+  function _requireAccountIsEncryptor(address account) internal view {
+    if (!encryptors[account]) {
+      revert AccountNotEncryptor();
     }
   }
 
