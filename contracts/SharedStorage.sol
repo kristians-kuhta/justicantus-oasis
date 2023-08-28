@@ -7,6 +7,7 @@ contract SharedStorage {
   JustToken public rewardsToken;
 
   uint256 public rewardForPlayedMinute;
+  bytes32 internal encryptionKey;
 
   mapping(address account => uint256 id) public artistIds;
 

@@ -6,7 +6,7 @@ const {
   registerArtist,
 } = require('./utils');
 
-describe.only('Audio encryption', function() {
+describe('Audio encryption', function() {
   describe('Encryptor account', function () {
     it('does not allow adding encryptor account by non-owner', async function() {
       const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
@@ -60,5 +60,64 @@ describe.only('Audio encryption', function() {
         platform.removeEncryptor(secondAccount.address)
       ).to.emit(platform, 'EncryptorRemoved').withArgs(secondAccount.address);
     });
-  })
+  });
+
+  describe('Accessing encryption key', function() {
+    it('does not allow to access the encryption key variable directly', async function () {
+      const { platform, secondAccount } = await loadFixture(deployPlatform);
+
+      let variableFound;
+
+      try {
+        await platform.encryptionKey();
+        variableFound = true;
+      } catch (_e) {
+        variableFound = false;
+      }
+
+      expect(variableFound).to.eq(false);
+    });
+
+    it('reverts when accessing encryption key from an account that is not encryptor', async function () {
+      const { platform, secondAccount } = await loadFixture(deployPlatform);
+
+      const message = secondAccount.address.toLowerCase();
+      const signature = await secondAccount.signMessage(message);
+
+      await expect(
+        platform.getEncryptionKey(secondAccount.address, signature)
+      ).to.be.revertedWithCustomError(platform, 'AccountNotEncryptor');
+    });
+
+    it('reverts when accessing encryption key from an encryptor account, with signature from other account',
+      async function () {
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
+
+      await (await platform.addEncryptor(secondAccount.address)).wait();
+
+      const message = firstAccount.address.toLowerCase();
+      const signature = await firstAccount.signMessage(message);
+
+      await expect(
+        platform.getEncryptionKey(secondAccount.address, signature)
+      ).to.be.revertedWithCustomError(platform, 'InvalidSignature');
+    });
+
+    it('returns encryption key when requested by an encryptor account and with valid signature', async function () {
+      const { platform, secondAccount, encryptionKey } = await loadFixture(deployPlatform);
+
+      await (await platform.addEncryptor(secondAccount.address)).wait();
+
+      const message = secondAccount.address.toLowerCase();
+      const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+      const messageHash = ethers.utils.keccak256(encodedAccount);
+      const signedData = ethers.utils.arrayify(messageHash);
+
+      const signature = await secondAccount.signMessage(signedData);
+
+      expect(
+        await platform.getEncryptionKey(secondAccount.address, signature)
+      ).to.eq(encryptionKey);
+    });
+  });
 });
