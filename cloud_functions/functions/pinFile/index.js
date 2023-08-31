@@ -5,9 +5,31 @@ const fs = require('fs');
 const FormData = require('form-data');
 const axios = require('axios');
 const Busboy = require('busboy');
+const functions = require('@google-cloud/functions-framework');
+const sodium = require('libsodium-wrappers');
+const ethers = require("ethers");
+
 const IPFS_ADD_ENDPOINT = 'https://ipfs.infura.io:5001/api/v0/add';
 
 const corsMiddleware = require('../../middlewares/corsMiddleware.js');
+
+const {
+  INFURA_API_KEY,
+  INFURA_API_SECRET,
+  INFURA_URL,
+  ENCRYPTOR_PRIVATE_KEY
+} = process.env;
+
+const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
+
+const contractAddresses = require("../../contracts/contract-addresses.json");
+const PlatformArtifact = require("../../contracts/Platform.json");
+const platform = new ethers.Contract(
+  contractAddresses.Platform,
+  PlatformArtifact.abi,
+  encryptor
+);
 
 const PIN_OPTIONS = {
   params: { pin: 'true' },
@@ -21,25 +43,74 @@ const pinFile = async (formData) => {
   return axios.post(IPFS_ADD_ENDPOINT, formData, PIN_OPTIONS);
 };
 
-const pinFileToIpfs = async (uploads) => {
+const getEncryptionKey = async () => {
+  const message = encryptor.address.toLowerCase();
+  const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+  const messageHash = ethers.utils.keccak256(encodedAccount);
+  const signedData = ethers.utils.arrayify(messageHash);
+
+  const signature = await encryptor.signMessage(signedData);
+
+  return await platform.getEncryptionKey(encryptor.address, signature);
+};
+
+const encryptData = async (encryptionKeyBytes, filePath) => {
+  await sodium.ready;
+
+  const inputFileBuffer = fs.readFileSync(filePath);
+
+  const pushStream = sodium.crypto_secretstream_xchacha20poly1305_init_push(encryptionKeyBytes);
+  const { state, header } = pushStream;
+
+  const encryptedChunks = [];
+  encryptedChunks.push(header);
+
+  const chunk = sodium.crypto_secretstream_xchacha20poly1305_push(
+    state,
+    inputFileBuffer,
+    null,
+    sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE
+  );
+  encryptedChunks.push(chunk);
+
+  return Buffer.concat(encryptedChunks);
+};
+
+const encryptFile = async (encryptionKeyBytes, outFilePath, fileContent) => {
+  fs.writeFileSync(filePath, fileContent);
+
+  const data = await encryptData(encryptionKeyBytes, filePath);
+
+  fs.writeFileSync(filePath, data);
+
+  return fs.createReadStream(filePath);
+};
+
+const pinFileToIpfs = async (res, uploads, fields, tmpDir) => {
   const { INFURA_API_KEY, INFURA_API_SECRET } = process.env;
 
-  const formData = new FormData();
-  formData.append('file', fs.readFileSync(uploads['file']));
+  const encryptionKey = await getEncryptionKey();
+  const encryptionKeyBytes = sodium.from_hex(encryptionKey.slice(2));
 
-  const pinAudioFileResponse = await pinFile(formData);;
+  const tmpDir = os.tmpdir();
+  const outFilePath = path.join(tmpDir, 'file.enc');
+
+  const formData = new FormData();
+  const encryptedAudioFile = await encryptFile(
+    encryptionKeyBytes,
+    outFilePath,
+    fs.readFileSync(uploads['file'])
+  );
+  formData.append('file', encryptedAudioFile);
+
+  const pinAudioFileResponse = await pinFile(formData);
   const audioFileCid = pinAudioFileResponse.data.Hash;
 
-  const jsonContent = JSON.stringify({ title: fields['title'], cid: audioFileCid });
-
-  // Write final json object to tmp file
-  const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, 'final.json');
-
-  fs.writeFileSync(tmpFile, jsonContent);
+  const fileContent = JSON.stringify({ title: fields['title'], cid: audioFileCid });
 
   const secondFormData = new FormData();
-  secondFormData.append('file', fs.createReadStream(tmpFile));
+  const encryptedFile = await encryptFile(encryptionKeyBytes, outFilePath, fileContent);
+  secondFormData.append('file', encryptedFile);
 
   try {
     const metadataPinResponse = await pinFile(secondFormData);
@@ -50,8 +121,7 @@ const pinFileToIpfs = async (uploads) => {
     res.status(500).send('An error occured while pinning the file');
   }
 
-  // Remove final json object tmp file
-  fs.unlinkSync(tmpFile);
+  fs.unlinkSync(outFilePath);
 };
 
 const handlePinFile = (req, res) => {
@@ -75,7 +145,8 @@ const handlePinFile = (req, res) => {
     busboy.on('file', (fieldname, file, { filename }) => {
       // Note: os.tmpdir() points to an in-memory file system on GCF
       // Thus, any files in it must fit in the instance's memory.
-      const filepath = path.join(tmpdir, filename);
+      const tmpDir = os.tmpdir();
+      const filepath = path.join(tmpDir, filename);
       uploads[fieldname] = filepath;
 
       const writeStream = fs.createWriteStream(filepath);
@@ -99,7 +170,7 @@ const handlePinFile = (req, res) => {
     // We still need to wait for the disk writes (saves) to complete.
     busboy.on('finish', async () => {
       await Promise.all(fileWrites);
-      await pinFileToIpfs(uploads);
+      await pinFileToIpfs(res, uploads, fields);
     });
 
     busboy.end(req.rawBody);
@@ -107,3 +178,5 @@ const handlePinFile = (req, res) => {
 };
 
 functions.http('pinFile', handlePinFile);
+
+module.exports = { handlePinFile };
