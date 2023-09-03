@@ -7,6 +7,7 @@ import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
+import Spinner from 'react-bootstrap/Spinner';
 
 import { PlayFill, PauseFill } from 'react-bootstrap-icons';
 
@@ -18,12 +19,19 @@ const {
 } = process.env;
 const TRACKING_INTERVAL_MILLISECONDS = 10000; // 10 seconds
 
-const PlayControls = ({songId, playing, subscriber, handleSongPlay}) => {
-  if (playing) {
+const PlayControls = ({songId, playing, loading, subscriber, handleSongPlay}) => {
+  if (playing && !loading) {
     return <PauseFill onClick={() => handleSongPlay(songId, subscriber)}></PauseFill>;
+  } else if (loading) {
+    const style = {
+      '--bs-spinner-width': '1em',
+      '--bs-spinner-height': '1em',
+      '--bs-spinner-border-width': '0.15em'
+    };
+    return <Spinner style={style} />;
+  } else {
+    return <PlayFill onClick={() => handleSongPlay(songId, subscriber)}></PlayFill>;
   }
-
-  return <PlayFill onClick={() => handleSongPlay(songId, subscriber)}></PlayFill>;
 };
 
 const Song = ({
@@ -40,7 +48,8 @@ const Song = ({
         {song.title}
         {
           playable &&
-            <PlayControls songId={song.id} playing={song.playing} subscriber={subscriber} handleSongPlay={handleSongPlay} />
+            <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
+              subscriber={subscriber} handleSongPlay={handleSongPlay} />
         }
 
     { purchased && <Badge bg="success">Owned</Badge> }
@@ -142,7 +151,18 @@ const ArtistSongs = () => {
 
       song.playing = true;
       song.audio.src = decryptFileURL(song.audioCID);
+      song.loading = true;
       song.audio.play();
+      song.audio.addEventListener('canplaythrough', (evt) => {
+        song.loading = false;
+
+        // TODO: find a better way of updating loading status
+        const otherSongs = songs.filter((sng) => sng.id !== songId);
+        const newSongs = [ ...otherSongs, song ].sort((a, b) => a.order - b.order);
+        setSongs(newSongs);
+
+        evt.target.removeEventListener('canplaythrough', () => {});
+      });
     }
 
     const otherSongs = songs.filter((sng) => sng.id !== songId);
@@ -196,7 +216,15 @@ const ArtistSongs = () => {
 
         audio.addEventListener('ended', () => handleSongEnded(id.toString()));
         const audioCID = metadata.cid;
-        songsData.push({ order: i, id: id.toString(), uri, audioCID, title: metadata.title, audio, playing: false });
+        songsData.push({
+          order: i,
+          id: id.toString(),
+          uri, audioCID,
+          title: metadata.title,
+          audio,
+          playing: false,
+          loading: false,
+        });
       }
 
       setSongs(songsData);
