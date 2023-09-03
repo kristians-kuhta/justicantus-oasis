@@ -99,10 +99,19 @@ const buyTokens = async (platform, justToken, account, tokensCount) => {
   );
 };
 
+const createSignature = async (account) => {
+  const message = account.address.toLowerCase();
+  const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+  const messageHash = ethers.utils.keccak256(encodedAccount);
+  const signedData = ethers.utils.arrayify(messageHash);
+
+  return await account.signMessage(signedData);
+};
 
 module.exports = {
   deployPlatform,
   registerArtist,
   registerSong,
   buyTokens,
+  createSignature,
 };

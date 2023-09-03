@@ -4,6 +4,7 @@ const {
   deployPlatform,
   registerSong,
   registerArtist,
+  createSignature,
 } = require('./utils');
 
 describe('Audio encryption', function() {
@@ -81,8 +82,7 @@ describe('Audio encryption', function() {
     it('reverts when accessing encryption key from an account that is not encryptor', async function () {
       const { platform, secondAccount } = await loadFixture(deployPlatform);
 
-      const message = secondAccount.address.toLowerCase();
-      const signature = await secondAccount.signMessage(message);
+      const signature = await createSignature(secondAccount);
 
       await expect(
         platform.getEncryptionKey(secondAccount.address, signature)
@@ -95,8 +95,7 @@ describe('Audio encryption', function() {
 
       await (await platform.addEncryptor(secondAccount.address)).wait();
 
-      const message = firstAccount.address.toLowerCase();
-      const signature = await firstAccount.signMessage(message);
+      const signature = await createSignature(firstAccount);
 
       await expect(
         platform.getEncryptionKey(secondAccount.address, signature)
@@ -108,12 +107,7 @@ describe('Audio encryption', function() {
 
       await (await platform.addEncryptor(secondAccount.address)).wait();
 
-      const message = secondAccount.address.toLowerCase();
-      const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
-      const messageHash = ethers.utils.keccak256(encodedAccount);
-      const signedData = ethers.utils.arrayify(messageHash);
-
-      const signature = await secondAccount.signMessage(signedData);
+      const signature = await createSignature(secondAccount);
 
       expect(
         await platform.getEncryptionKey(secondAccount.address, signature)
