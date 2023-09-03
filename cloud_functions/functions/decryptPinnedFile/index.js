@@ -77,6 +77,7 @@ const decryptFile = async (filePath, encryptionKeyBytes) => {
     header,
     encryptionKeyBytes
   );
+
   const decryptedData = sodium.crypto_secretstream_xchacha20poly1305_pull(stream, encryptedData);
 
   return decryptedData;
@@ -95,30 +96,30 @@ const handleDecryptPinnedFile = async (req, res) => {
 
     // 2. fetch file by cid
     const tmpFile = path.join(os.tmpdir(), 'file.enc');
-    await fetchAndWriteFile(tmpFile, req.query.cid);
+    try {
+      await fetchAndWriteFile(tmpFile, req.query.cid);
 
-    // 3. get encryption key
-    const encryptionKey = await getEncryptionKey();
-    const encryptionKeyBytes = sodium.from_hex(encryptionKey.slice(2));
+      // 3. get encryption key
+      const encryptionKey = await getEncryptionKey();
+      const encryptionKeyBytes = sodium.from_hex(encryptionKey.slice(2));
 
-    // 4. decrypt file
-    const decryptedData = await decryptFile(tmpFile, encryptionKeyBytes);
+      // 4. decrypt file
+      const decryptedData = await decryptFile(tmpFile, encryptionKeyBytes);
 
-    // 5. Delete the tmp file
-    fs.unlinkSync(tmpFile);
+      if (!decryptedData || !decryptedData.message) throw Error('Data could not be decrypted');
 
-    if (!decryptedData || !decryptedData.message) {
+      const detectedFileType = fileType(decryptedData.message);
+      const contentType = detectedFileType ? detectedFileType.mime : 'application/octet-stream';
+
+      // 5. Set the appropriate response headers.
+      res.setHeader('Content-Type', contentType);
+
+      // 6. respond with decrypted file
+      return res.end(decryptedData.message);
+    } catch (e) {
+      console.error(e.message);
       return res.status(400).send('Could not decrypt file');
     }
-
-    const detectedFileType = fileType(decryptedData.message);
-    const contentType = detectedFileType ? detectedFileType.mime : 'application/octet-stream';
-
-    // 6. Set the appropriate response headers.
-    res.setHeader('Content-Type', contentType);
-
-    // 7. respond with decrypted file
-    return res.end(decryptedData.message);
   });
 };
 
