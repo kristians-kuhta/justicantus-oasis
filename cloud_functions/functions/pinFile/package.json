@@ -4,8 +4,7 @@
   "description": "Encrypts and pins a file to IPFS",
   "main": "index.js",
   "scripts": {
-    "start": "INFURA_API_KEY=$INFURA_API_KEY INFURA_API_SECRET=$INFURA_API_SECRET ALLOWED_ORIGINS=* npx functions-framework --target=pinFile --source=index.js --port=8081",
-    "test": "mocha test/*.js"
+    "start": "ALLOWED_ORIGINS=* npx functions-framework --target=pinFile --source=index.js --port=8081"
   },
   "license": "MIT",
   "dependencies": {
