@@ -125,7 +125,7 @@ const pinFileToIpfs = async (res, uploads, fields, tmpDir) => {
 };
 
 const handlePinFile = (req, res) => {
-  corsMiddleware(req, res, () => {
+  corsMiddleware(req, res, 'POST', () => {
     const busboy = Busboy({headers: req.headers});
     //
     // This object will accumulate all the fields, keyed by their name
