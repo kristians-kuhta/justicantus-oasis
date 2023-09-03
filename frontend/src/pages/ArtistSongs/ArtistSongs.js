@@ -8,6 +8,7 @@ import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
 import Spinner from 'react-bootstrap/Spinner';
+import ProgressBar from 'react-bootstrap/ProgressBar';
 
 import { PlayFill, PauseFill } from 'react-bootstrap-icons';
 
@@ -36,6 +37,7 @@ const PlayControls = ({songId, playing, loading, subscriber, handleSongPlay}) =>
 
 const Song = ({
   song,
+  songProgress,
   playable,
   canBePurchased,
   purchased,
@@ -45,22 +47,24 @@ const Song = ({
   handleSongBuy
 }) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
-        {song.title}
-        {
-          playable &&
-            <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
-              subscriber={subscriber} handleSongPlay={handleSongPlay} />
-        }
+    {song.title}
+    {
+      playable &&
+        <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
+          subscriber={subscriber} handleSongPlay={handleSongPlay} />
+    }
+    <ProgressBar now={songProgress} max={100} style={{ width: '10rem', '--bs-progress-height': '0.375rem', '--bs-progress-bar-bg': 'var(--bs-dark-text-emphasis)' }} />
 
     { purchased && <Badge bg="success">Owned</Badge> }
     { canBePurchased &&
         <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
     }
-      </ListGroup.Item>;
+  </ListGroup.Item>;
 };
 
 const ArtistSongsList = ({
   songs,
+  songProgress,
   account,
   accountIsArtist,
   subscriber,
@@ -83,7 +87,7 @@ const ArtistSongsList = ({
 
       const canBePurchased = !accountIsArtist() && isExclusive && !songPurchased;
 
-      return <Song key={song.id} song={song} playable={playable} exclusivePrice={exclusivePrice}
+      return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
         handleSongBuy={handleSongBuy} />;
     })).then(setSongItems);
@@ -101,6 +105,7 @@ const ArtistSongs = () => {
   const [progress, setProgress] = useState(0);
   const [trackingInterval, setTrackingInterval] = useState(null);
   const [playbackEndedSongId, setPlaybackEndedSongId] = useState(null);
+  const [songProgress, setSongProgress] = useState(0);
 
   const sendTrackingEvent = useCallback((song) => {
     const signature = localStorage.getItem('subscriberSignature');
@@ -123,6 +128,14 @@ const ArtistSongs = () => {
       console.error(e);
     }
   }, [subscriber, artistAddress]);
+
+  const handleSongProgressUpdate = (evt) => {
+    const { currentTime, duration } = evt.target;
+
+    setSongProgress(
+      Math.round(currentTime * 100 / duration)
+    )
+  };
 
   // For both play and pause/stop events
   const handleSongPlay = useCallback((songId, subscriber) => {
@@ -163,6 +176,7 @@ const ArtistSongs = () => {
 
         evt.target.removeEventListener('canplaythrough', () => {});
       });
+      song.audio.addEventListener('timeupdate', handleSongProgressUpdate);
     }
 
     const otherSongs = songs.filter((sng) => sng.id !== songId);
@@ -284,6 +298,7 @@ const ArtistSongs = () => {
     { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
       songs={songs}
+      songProgress={songProgress}
       account={account}
       accountIsArtist={accountIsArtist}
       subscriber={subscriber}
