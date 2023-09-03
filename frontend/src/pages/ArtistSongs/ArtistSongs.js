@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { ethers } from "ethers";
+
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
+
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
@@ -10,8 +13,8 @@ import { PlayFill, PauseFill } from 'react-bootstrap-icons';
 import { BigNumber } from 'ethers';
 
 const {
-  REACT_APP_IPFS_API_URL,
-  REACT_APP_TRACKING_FUNCTION_URL
+  REACT_APP_TRACKING_FUNCTION_URL,
+  REACT_APP_DECRYPT_FUNCTION_URL
 } = process.env;
 const TRACKING_INTERVAL_MILLISECONDS = 10000; // 10 seconds
 
@@ -81,7 +84,7 @@ const ArtistSongsList = ({
 };
 
 const ArtistSongs = () => {
-  const { platform, justToken, account, subscriber, setMessage } = useOutletContext();
+  const { platform, justToken, account, accountSigner, subscriber, setMessage } = useOutletContext();
   const navigate = useNavigate();
   const { artistAddress } = useParams();
 
@@ -158,6 +161,26 @@ const ArtistSongs = () => {
     setPlaybackEndedSongId(null);
   }, [playbackEndedSongId, handleSongPlay, subscriber, setPlaybackEndedSongId]);
 
+  const decryptPinnedFile = async (cid) => {
+    return (await axios.get(await decryptedAudioURL(cid))).data;
+  };
+
+  const createSignature = async () => {
+    const message = accountSigner.address.toLowerCase();
+    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+    const messageHash = ethers.utils.keccak256(encodedAccount);
+    const signedData = ethers.utils.arrayify(messageHash);
+
+    return await accountSigner.signMessage(signedData);
+  };
+
+  const decryptedAudioURL = async (cid) => {
+    // TODO: add signature here to allow only owners or subscribers here and to make it harder for
+    // someone to just pick owners address and decrypting the audio file
+    // TODO: consider passing cid and account address in req. body instead for security reasons
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${account}`;
+  };
+
   useEffect(() => {
     (async () => {
       const songsCount = await platform.getArtistSongsCount(artistAddress);
@@ -166,8 +189,10 @@ const ArtistSongs = () => {
       for(let i = 0; i < songsCount; i++) {
         const id = await platform.getArtistSongId(artistAddress, i);
         const uri = await platform.getSongUri(id);
-        const metadata = (await axios.get(`${REACT_APP_IPFS_API_URL}${uri}`)).data || {};
-        const audio = new Audio(`${REACT_APP_IPFS_API_URL}${metadata.cid}`);
+        const metadata = await decryptPinnedFile(uri);
+
+        const audio = new Audio(await decryptedAudioURL(metadata.cid));
+
         audio.addEventListener('ended', () => handleSongEnded(id.toString()));
         songsData.push({ order: i, id: id.toString(), uri, title: metadata.title, audio, playing: false });
       }
