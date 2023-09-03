@@ -77,16 +77,16 @@ const encryptData = async (encryptionKeyBytes, filePath) => {
 };
 
 const encryptFile = async (encryptionKeyBytes, outFilePath, fileContent) => {
-  fs.writeFileSync(filePath, fileContent);
+  fs.writeFileSync(outFilePath, fileContent);
 
-  const data = await encryptData(encryptionKeyBytes, filePath);
+  const data = await encryptData(encryptionKeyBytes, outFilePath);
 
-  fs.writeFileSync(filePath, data);
+  fs.writeFileSync(outFilePath, data);
 
-  return fs.createReadStream(filePath);
+  return fs.createReadStream(outFilePath);
 };
 
-const pinFileToIpfs = async (res, uploads, fields, tmpDir) => {
+const pinFileToIpfs = async (res, uploads, fields) => {
   const { INFURA_API_KEY, INFURA_API_SECRET } = process.env;
 
   const encryptionKey = await getEncryptionKey();
