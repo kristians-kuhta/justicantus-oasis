@@ -141,6 +141,7 @@ const ArtistSongs = () => {
       }
 
       song.playing = true;
+      song.audio.src = decryptFileURL(song.audioCID);
       song.audio.play();
     }
 
@@ -162,7 +163,7 @@ const ArtistSongs = () => {
   }, [playbackEndedSongId, handleSongPlay, subscriber, setPlaybackEndedSongId]);
 
   const decryptPinnedFile = async (cid) => {
-    return (await axios.get(await decryptedAudioURL(cid))).data;
+    return (await axios.get(decryptFileURL(cid))).data;
   };
 
   const createSignature = async () => {
@@ -174,7 +175,7 @@ const ArtistSongs = () => {
     return await accountSigner.signMessage(signedData);
   };
 
-  const decryptedAudioURL = async (cid) => {
+  const decryptFileURL = (cid) => {
     // TODO: add signature here to allow only owners or subscribers here and to make it harder for
     // someone to just pick owners address and decrypting the audio file
     // TODO: consider passing cid and account address in req. body instead for security reasons
@@ -191,10 +192,11 @@ const ArtistSongs = () => {
         const uri = await platform.getSongUri(id);
         const metadata = await decryptPinnedFile(uri);
 
-        const audio = new Audio(await decryptedAudioURL(metadata.cid));
+        const audio = new Audio();
 
         audio.addEventListener('ended', () => handleSongEnded(id.toString()));
-        songsData.push({ order: i, id: id.toString(), uri, title: metadata.title, audio, playing: false });
+        const audioCID = metadata.cid;
+        songsData.push({ order: i, id: id.toString(), uri, audioCID, title: metadata.title, audio, playing: false });
       }
 
       setSongs(songsData);
