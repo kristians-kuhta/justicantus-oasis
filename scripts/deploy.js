@@ -12,22 +12,30 @@ function saveFrontendFiles(platform) {
 
   // `artifacts` is a helper property provided by Hardhat to read artifacts
   const PlatformArtifact = artifacts.readArtifactSync("Platform");
+  const JustTokenArtifact = artifacts.readArtifactSync("JustToken");
 
-  contractsDirs.forEach((contractsDir) => {
+  contractsDirs.forEach(async (contractsDir) => {
     const contractsPath = path.join(__dirname, contractsDir);
 
     if (!fs.existsSync(contractsPath)) {
       fs.mkdirSync(contractsPath);
     }
 
+    const justTokenAddress = await platform.rewardsToken();
+
     fs.writeFileSync(
       contractsPath + "/contract-addresses.json",
-      JSON.stringify({ Platform: platform.address }, null, 2)
+      JSON.stringify({ Platform: platform.address, JustToken: justTokenAddress }, null, 2)
     );
 
     fs.writeFileSync(
       contractsPath + "/Platform.json",
       JSON.stringify(PlatformArtifact, null, 2)
+    );
+
+    fs.writeFileSync(
+      contractsPath + "/JustToken.json",
+      JSON.stringify(JustTokenArtifact, null, 2)
     );
 
     console.log(`Artifacts written to ${contractsPath} directory`);
@@ -37,10 +45,14 @@ function saveFrontendFiles(platform) {
 async function main() {
   const Platform = await hre.ethers.getContractFactory('Platform');
 
-  const { NODE_ENV } = process.env;
+  const {
+    NODE_ENV,
+    REWARDS_FOR_PROPOSAL,
+    PRICE_PER_TOKEN,
+  } = process.env;
 
   console.log('[Deploy] Deploying platform...');
-  platform = await Platform.deploy();
+  platform = await Platform.deploy(REWARDS_FOR_PROPOSAL, PRICE_PER_TOKEN);
   console.log('[Deploy] Deploy tx send...');
 
   await platform.deployed();
@@ -50,7 +62,7 @@ async function main() {
   saveFrontendFiles(platform);
 
   console.log(
-    `[Deploy] DONE!\nPlatform deployed to ${platform.address}`
+    `[Deploy] DONE!\nPlatform deployed to ${platform.address} with rewards for proposal of ${REWARDS_FOR_PROPOSAL} and price per token of ${PRICE_PER_TOKEN}`
   );
 }
 

@@ -2,8 +2,9 @@
 pragma solidity 0.8.19;
 
 import { Sapphire } from "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
+import { SharedStorage } from "./SharedStorage.sol";
 
-contract ResourceRegistration {
+contract ResourceRegistration is SharedStorage {
   enum ResourceType {
     Unknown,
     Artist,
@@ -11,11 +12,6 @@ contract ResourceRegistration {
   }
 
   mapping(uint256 id => string name) public artistNames;
-  mapping(address account => uint256 id) public artistIds;
-
-  mapping(uint256 id => string uri) private songURIs;
-  mapping(address account => uint256[] ids) private songIds;
-  mapping(address account => uint256 count) private songsCount;
 
   // Data is either artist name or song uri
   event ResourceRegistered(
@@ -28,7 +24,6 @@ contract ResourceRegistration {
   error ArtistNameRequired();
   error ArtistAlreadyRegistered();
   error SongUriRequired();
-  error NotARegisteredArtist();
 
   function registerArtist(string calldata name) external {
     _requireArtistName(name);
@@ -37,11 +32,12 @@ contract ResourceRegistration {
     _registerArtist(msg.sender, name);
   }
 
-  function registerSong(string calldata uri) external {
+  // NOTE: to register, non-exclusive (default) song pass a price of 0
+  function registerSong(string calldata uri, uint256 exclusivePrice) external {
     _requireUri(uri);
     _requireRegisteredArtist();
 
-    _registerSong(msg.sender, uri);
+    _registerSong(msg.sender, uri, exclusivePrice);
   }
 
   // ++++++++++++++++View/Pure functions +++++++++++++++
@@ -59,16 +55,6 @@ contract ResourceRegistration {
 
   function getArtistSongId(address artist, uint256 songIndex) external view returns (uint256) {
     return songIds[artist][songIndex];
-  }
-
-  function isArtistSong(address artist, uint256 songId) external view returns (bool) {
-    uint256 artistSongsCount = songsCount[artist];
-    for(uint256 i; i < artistSongsCount; i++) {
-      if (songIds[artist][i] == songId) {
-        return true;
-      }
-    }
-    return false;
   }
 
   function getArtistSongsCount(address artist) external view returns (uint256) {
@@ -95,7 +81,7 @@ contract ResourceRegistration {
     );
   }
 
-  function _registerSong(address artist, string memory uri) internal {
+  function _registerSong(address artist, string memory uri, uint256 exclusivePrice) internal {
     uint256 generatedId = _generateRandomBytes();
 
     // NOTE: this might be needed, because the generator seems to be pseudo-random
@@ -106,6 +92,7 @@ contract ResourceRegistration {
     songURIs[generatedId] = uri;
     songIds[artist].push(generatedId);
     songsCount[artist]++;
+    exclusiveSongPrices[generatedId] = exclusivePrice;
 
     emit ResourceRegistered(
       artist,
@@ -142,12 +129,6 @@ contract ResourceRegistration {
   function _requireNotRegistered() internal view {
     if (artistIds[msg.sender] > 0) {
       revert ArtistAlreadyRegistered();
-    }
-  }
-
-  function _requireRegisteredArtist() internal view {
-    if (artistIds[msg.sender] == 0) {
-      revert NotARegisteredArtist();
     }
   }
 

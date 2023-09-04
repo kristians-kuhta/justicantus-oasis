@@ -30,24 +30,24 @@ describe("ResourceRegistration", function () {
   });
 
   describe('Song registration', function () {
-    it('initializes song registration', async function () {
+    it('registers a non-exclusive song', async function () {
       const { platform, firstAccount } = await loadFixture(deployPlatform);
 
       await registerArtist(platform, firstAccount, 'First Artist');
 
       const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
 
-      await registerSong(platform, firstAccount, ipfsID);
+      await registerSong(platform, firstAccount, ipfsID, 0);
     });
 
-    it('completes song registration', async function () {
+    it('registers an exclusive song', async function () {
       const { platform, firstAccount } = await loadFixture(deployPlatform);
 
       await registerArtist(platform, firstAccount, 'First Artist');
 
       const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
 
-      await registerSong(platform, firstAccount, ipfsID);
+      await registerSong(platform, firstAccount, ipfsID, 123);
     });
 
     it('reverts when registering a song without providing uri', async function () {
@@ -56,7 +56,7 @@ describe("ResourceRegistration", function () {
       await registerArtist(platform, firstAccount, 'First Artist');
 
       await expect(
-        platform.connect(firstAccount).registerSong('')
+        platform.connect(firstAccount).registerSong('', 0)
       ).to.be.revertedWithCustomError(platform, 'SongUriRequired');
     });
 
@@ -64,7 +64,7 @@ describe("ResourceRegistration", function () {
       const { platform } = await loadFixture(deployPlatform);
 
       await expect(
-        platform.registerSong('something')
+        platform.registerSong('something', 0)
       ).to.be.revertedWithCustomError(platform, 'NotARegisteredArtist');
     });
   });

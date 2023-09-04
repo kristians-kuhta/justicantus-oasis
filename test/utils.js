@@ -1,5 +1,6 @@
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
+const { BigNumber } = ethers;
 
 const deployPlatform = async () => {
   const [owner, firstAccount, secondAccount] = await ethers.getSigners();
@@ -46,9 +47,9 @@ const registerArtist = async (platform, artistAccount, artistName) => {
   ).not.to.equal('0');
 }
 
-const registerSong = async (platform, artistAccount, uri) => {
+const registerSong = async (platform, artistAccount, uri, exclusivePrice) => {
   const RESOURCE_TYPE_SONG = 2;
-  const registrationResponse = platform.connect(artistAccount).registerSong(uri);
+  const registrationResponse = platform.connect(artistAccount).registerSong(uri, exclusivePrice);
 
   await expect(registrationResponse).to.emit(platform, 'ResourceRegistered').withArgs(
     artistAccount.address,
@@ -67,10 +68,33 @@ const registerSong = async (platform, artistAccount, uri) => {
 
   expect(returnedSongId.toString()).not.to.eq('0');
   expect(await platform.getSongUri(returnedSongId)).to.eq(uri);
+
+  expect(await platform.exclusiveSongPrices(returnedSongId)).to.eq(exclusivePrice);
+
+  return returnedSongId;
 }
+
+const buyTokens = async (platform, justToken, account, tokensCount) => {
+  const oneTokenPrice = await platform.pricePerToken();
+  const tokensCost = BigNumber.from(tokensCount).mul(oneTokenPrice);
+
+  const decimals = await justToken.decimals();
+  const fractionsPerToken = BigNumber.from(10).pow(decimals);
+
+  const expectedTokensCount = BigNumber.from(tokensCount).mul(fractionsPerToken);
+  await expect(
+    platform.connect(account).buyTokens(tokensCount, { value: tokensCost })
+  ).to.emit(justToken, 'Transfer').withArgs(
+    ethers.constants.AddressZero,
+    account.address,
+    expectedTokensCount
+  );
+};
+
 
 module.exports = {
   deployPlatform,
   registerArtist,
   registerSong,
+  buyTokens,
 };

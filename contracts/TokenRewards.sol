@@ -3,10 +3,10 @@ pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { JustToken } from "./JustToken.sol";
+import { SharedStorage } from "./SharedStorage.sol";
 
 // TODO: consider a better naming for this contract
-contract TokenRewards is Ownable {
-  JustToken public rewardsToken;
+contract TokenRewards is Ownable, SharedStorage {
   uint256 public rewardsPerProposal;
   uint256 public pricePerToken;
 
@@ -45,29 +45,40 @@ contract TokenRewards is Ownable {
     emit PricePerTokenUpdated(_price);
   }
 
-  function buyTokens(uint256 _amount) external payable {
-    _requireAmountNotZero(_amount);
-    _requireValueMatchesAmount(_amount);
+  // Question: do we allow non-subscribers to purchase tokens? Currently, yes.
+  function buyTokens(uint256 _wholeTokens) external payable {
+    _requireAmountNotZero(_wholeTokens);
+    _requireValueMatchesAmount(_wholeTokens);
 
     // TODO: maybe we should check the return value of this?
-    // TODO: check if enough balance, else mint only the missing tokens
-    rewardsToken.mint(msg.sender, _amount);
-    // NOTE: no extra events are emitted, OZ ERC20 already emits an Transfer event
+    uint256 platformTokenBalance = rewardsToken.balanceOf(address(this));
+    uint256 fractionalTokens = _wholeTokens * (10**rewardsToken.decimals());
+
+    // TODO: add test case when platform has existing tokens
+    if (platformTokenBalance >= fractionalTokens) {
+      rewardsToken.transfer(msg.sender, fractionalTokens);
+    } else {
+      rewardsToken.mint(msg.sender, fractionalTokens);
+    }
   }
 
-  function sellTokens(uint256 _amount, address _receiver) external {
-    _requireAmountNotZero(_amount);
+  function sellTokens(uint256 _wholeTokens, address _receiver) external {
+    _requireAmountNotZero(_wholeTokens);
+
+    uint256 fractionalTokens = _wholeTokens * (10**rewardsToken.decimals());
 
     // NOTE: owners must approve before we can do this
-    rewardsToken.transferFrom(msg.sender, address(this), _amount);
+    rewardsToken.transferFrom(msg.sender, address(this), fractionalTokens);
 
-    uint256 payout = _amount * pricePerToken;
+    uint256 payout = _wholeTokens * pricePerToken;
     (bool success,) = payable(_receiver).call{ value: payout }("");
     require(success);
   }
 
-  function _requireValueMatchesAmount(uint256 _amount) internal view {
-    if (_amount * pricePerToken != msg.value) {
+  function _requireValueMatchesAmount(uint256 _wholeTokens) internal view {
+    uint256 cost = _wholeTokens * pricePerToken;
+
+    if (cost != msg.value) {
       revert AmountMustMatchValueExactly();
     }
   }
