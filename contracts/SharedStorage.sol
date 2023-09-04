@@ -28,6 +28,10 @@ contract SharedStorage {
   error AccountNotReporter();
   error AccountNotEncryptor();
 
+  function isArtistSong(address artist, uint256 songId) external view returns (bool) {
+    return _isArtistSong(artist, songId);
+  }
+
   function _requireAccountIsReporter(address account) internal view {
     if (!reporters[account]) {
       revert AccountNotReporter();
@@ -44,6 +48,13 @@ contract SharedStorage {
     return _isArtistSong(artist, songId);
   }
 
+  // TODO: this for ResourceRegistration and ClaimingRewards contract
+  function _requireRegisteredArtist() internal view {
+    if (artistIds[msg.sender] == 0) {
+      revert NotARegisteredArtist();
+    }
+  }
+
   function _isArtistSong(address artist, uint256 songId) internal view returns (bool) {
     uint256 artistSongsCount = songsCount[artist];
     for(uint256 i; i < artistSongsCount; i++) {
@@ -53,12 +64,4 @@ contract SharedStorage {
     }
     return false;
   }
-
-  // TODO: this for ResourceRegistration and ClaimingRewards contract
-  function _requireRegisteredArtist() internal view {
-    if (artistIds[msg.sender] == 0) {
-      revert NotARegisteredArtist();
-    }
-  }
-
 }
