@@ -138,7 +138,7 @@ const ArtistSongs = () => {
   };
 
   // For both play and pause/stop events
-  const handleSongPlay = useCallback((songId, subscriber) => {
+  const handleSongPlay = useCallback(async (songId, subscriber) => {
     let song = songs.find((sng) => sng.id === songId);
 
     if (song.playing) {
@@ -163,7 +163,7 @@ const ArtistSongs = () => {
       }
 
       song.playing = true;
-      song.audio.src = decryptFileURL(song.audioCID);
+      song.audio.src = await decryptFileURL(song.audioCID);
       song.loading = true;
       song.audio.play();
       song.audio.addEventListener('canplaythrough', (evt) => {
@@ -197,23 +197,34 @@ const ArtistSongs = () => {
   }, [playbackEndedSongId, handleSongPlay, subscriber, setPlaybackEndedSongId]);
 
   const decryptPinnedFile = async (cid) => {
-    return (await axios.get(decryptFileURL(cid))).data;
+    return (await axios.get(await decryptFileURL(cid))).data;
   };
 
-  const createSignature = async () => {
-    const message = accountSigner.address.toLowerCase();
+  const createSignature = async (signer, address) => {
+    const message = address.toLowerCase();
     const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
     const messageHash = ethers.utils.keccak256(encodedAccount);
     const signedData = ethers.utils.arrayify(messageHash);
 
-    return await accountSigner.signMessage(signedData);
+    return await signer.signMessage(signedData);
   };
 
-  const decryptFileURL = (cid) => {
-    // TODO: add signature here to allow only owners or subscribers here and to make it harder for
-    // someone to just pick owners address and decrypting the audio file
+  const createAndStoreSignature = async (signer, address) => {
+    const signature = await createSignature(signer, address);
+
+    localStorage.setItem(`account-signature-${address}`, signature);
+    return signature;
+  };
+
+  const getAccountSignature = (address) => {
+    return localStorage.getItem(`account-signature-${address}`);
+  };
+
+  const decryptFileURL = async (cid) => {
     // TODO: consider passing cid and account address in req. body instead for security reasons
-    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${account}`;
+    const address = await accountSigner.getAddress();
+    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
   };
 
   useEffect(() => {
