@@ -32,6 +32,10 @@ contract SharedStorage {
     return _isArtistSong(artist, songId);
   }
 
+  function isArtistSong(address artist, uint256 songId) external view returns (bool) {
+    return _isArtistSong(artist, songId);
+  }
+
   function _requireAccountIsReporter(address account) internal view {
     if (!reporters[account]) {
       revert AccountNotReporter();
@@ -42,10 +46,6 @@ contract SharedStorage {
     if (!encryptors[account]) {
       revert AccountNotEncryptor();
     }
-  }
-
-  function isArtistSong(address artist, uint256 songId) external view returns (bool) {
-    return _isArtistSong(artist, songId);
   }
 
   // TODO: this for ResourceRegistration and ClaimingRewards contract

@@ -4,9 +4,9 @@ pragma solidity 0.8.19;
 import { SharedStorage } from "./SharedStorage.sol";
 
 contract EncryptionKey is SharedStorage {
-  error InvalidSignature();
-
   string private constant SIGNATURE_PREFIX = "\x19Ethereum Signed Message:\n32";
+
+  error InvalidSignature();
 
   constructor(bytes32 _encryptionKey) {
     // NOTE: In the scope of smart contracts, we do not really care what is being put here.
