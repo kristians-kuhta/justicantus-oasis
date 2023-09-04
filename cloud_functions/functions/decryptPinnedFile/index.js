@@ -13,8 +13,6 @@ const functions = require('@google-cloud/functions-framework');
 const sodium = require('libsodium-wrappers');
 const ethers = require("ethers");
 
-// const IPFS_ENDPOINT = 'https://ipfs.io/ipfs/';
-
 const corsMiddleware = require('../../middlewares/corsMiddleware.js');
 
 const pipelinePromisified = util.promisify(pipeline);
@@ -83,19 +81,60 @@ const decryptFile = async (filePath, encryptionKeyBytes) => {
   return decryptedData;
 };
 
+const verifyAccountHasAccess = async (account, cid) => {
+  if (await platform.isActiveSubscriber(account)) return true;
+
+  const artistSongsCount = await platform.getArtistSongsCount(account);
+
+  for(let idx = 0; idx < artistSongsCount; idx++) {
+    const songId = await platform.getArtistSongId(account, idx);
+    const songUri = await platform.getSongUri(songId);
+
+    if (songUri !== cid) continue;
+
+    const isArtistSong = await platform.isArtistSong(account, songId);
+    if (isArtistSong) return true;
+  }
+
+  return false;
+};
+
+const verifyAccountSignature = async (account, signature) => {
+  const message = account.toLowerCase();
+  const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+  const messageHash = ethers.utils.keccak256(encodedAccount);
+  const signedData = ethers.utils.arrayify(messageHash);
+
+  const signer = await ethers.utils.verifyMessage(signedData, signature);
+
+  return signer.toLowerCase() === message;
+};
+
+const validationError = (error, errorStatusCode) => {
+  return { error, errorStatusCode };
+};
+
+const validateRequestParams = async (req) => {
+  if (!req.query) return validationError('Invalid params', 400);
+
+  const { cid, account, signature } = req.query;
+
+  if (!cid || !account || !signature) return validationError('Missing params', 400);
+  if (!(await verifyAccountSignature(account, signature))) return validationError('Invalid signature', 400);
+  if (!(await verifyAccountHasAccess(account, cid))) return validationError('Access denied', 403);
+
+  return { error: null, errorStatusCode: null };
+};
+
 const handleDecryptPinnedFile = async (req, res) => {
   corsMiddleware(req, res, 'GET', async () => {
-    // 1. require cid presence
-    if (!req.query || !req.query.cid) {
-      return res.status(400).send('Must provide CID');
-    }
+    const { error, errorStatusCode } = await validateRequestParams(req);
 
-    if (!req.query || !req.query.account) {
-      return res.status(400).send('Must provide account that requests decryption');
-    }
+    if (error) return res.status(errorStatusCode).send(error);
 
     // 2. fetch file by cid
     const tmpFile = path.join(os.tmpdir(), 'file.enc');
+    fs.writeFileSync(tmpFile, '');
     try {
       await fetchAndWriteFile(tmpFile, req.query.cid);
 
