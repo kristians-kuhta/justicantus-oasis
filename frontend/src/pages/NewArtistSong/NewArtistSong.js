@@ -55,9 +55,9 @@ const NewArtistSong = () => {
 
 
   useEffect(() => {
-    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum').
-      then((res) => res.json()).
-      then((data) => setCurrentEthPrice(BigNumber.from(data[0].current_price.toFixed())));
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum')
+      .then((res) => res.json())
+      .then((data) => setCurrentEthPrice(BigNumber.from(data[0].current_price.toFixed())));
 
     platform.pricePerToken().then((price) => setPricePerToken(price));
 
@@ -128,7 +128,7 @@ const NewArtistSong = () => {
     const priceInWei = exclusivePrice.mul(pricePerToken);
     const priceInEth = ethers.utils.formatEther(priceInWei);
 
-    return ethers.utils.formatEther(currentEthPrice.mul(priceInWei));
+    return ethers.utils.formatEther(currentEthPrice.mul(priceInEth));
   };
 
   const onSubmit = async (data) => {
@@ -216,7 +216,7 @@ const NewArtistSong = () => {
                       message: 'price must be at least 1 JUST'
                     },
                     validate: {
-                      onlyIntegers: (v) => parseInt(v) == v || 'must be an integer'
+                      onlyIntegers: (v) => parseInt(v) === v || 'must be an integer'
                     }
                   })}
                 />

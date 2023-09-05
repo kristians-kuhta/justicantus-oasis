@@ -64,6 +64,7 @@ const Song = ({
 
 const ArtistSongsList = ({
   songs,
+  progress,
   songProgress,
   account,
   accountIsArtist,
@@ -73,7 +74,6 @@ const ArtistSongsList = ({
   platform,
 }) => {
   const [songItems, setSongItems] = useState([]);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     Promise.all(songs.map(async (song) => {
@@ -91,9 +91,24 @@ const ArtistSongsList = ({
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
         handleSongBuy={handleSongBuy} />;
     })).then(setSongItems);
-  }, [setSongItems, accountIsArtist, handleSongPlay, handleSongBuy, platform, songs, subscriber]);
+  }, [
+    setSongItems,
+    accountIsArtist,
+    handleSongPlay,
+    handleSongBuy,
+    platform,
+    songs,
+    subscriber,
+    account,
+    songProgress
+  ]);
 
-  return songItems.length > 0 ? <ListGroup variant='flush'>{songItems}</ListGroup> : null;
+  if (songItems.length > 0) return null;
+
+  return <>
+    { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
+    <ListGroup variant='flush'>{songItems}</ListGroup>;
+  </>;
 };
 
 const ArtistSongs = () => {
@@ -136,6 +151,38 @@ const ArtistSongs = () => {
       Math.round(currentTime * 100 / duration)
     )
   };
+
+  const createAndStoreSignature = useCallback(async (signer, address) => {
+    const signature = await createSignature(signer, address);
+
+    localStorage.setItem(`account-signature-${address}`, signature);
+    return signature;
+  }, []);
+
+  const decryptFileURL = useCallback(async (cid) => {
+    // TODO: consider passing cid and account address in req. body instead for security reasons
+    const address = await accountSigner.getAddress();
+    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
+  }, [accountSigner, createAndStoreSignature]);
+
+  const decryptPinnedFile = useCallback(async (cid) => {
+    return (await axios.get(await decryptFileURL(cid))).data;
+  }, [decryptFileURL]);
+
+  const createSignature = async (signer, address) => {
+    const message = address.toLowerCase();
+    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+    const messageHash = ethers.utils.keccak256(encodedAccount);
+    const signedData = ethers.utils.arrayify(messageHash);
+
+    return await signer.signMessage(signedData);
+  };
+
+  const getAccountSignature = (address) => {
+    return localStorage.getItem(`account-signature-${address}`);
+  };
+
 
   // For both play and pause/stop events
   const handleSongPlay = useCallback(async (songId, subscriber) => {
@@ -182,7 +229,7 @@ const ArtistSongs = () => {
     const otherSongs = songs.filter((sng) => sng.id !== songId);
     const newSongs = [ ...otherSongs, song ].sort((a, b) => a.order - b.order);
     setSongs(newSongs);
-  }, [songs, setSongs, setTrackingInterval, trackingInterval, sendTrackingEvent]);
+  }, [songs, setSongs, setTrackingInterval, trackingInterval, sendTrackingEvent, decryptFileURL]);
 
   const handleSongEnded = (songId) => {
     setPlaybackEndedSongId(songId);
@@ -195,37 +242,6 @@ const ArtistSongs = () => {
 
     setPlaybackEndedSongId(null);
   }, [playbackEndedSongId, handleSongPlay, subscriber, setPlaybackEndedSongId]);
-
-  const decryptPinnedFile = async (cid) => {
-    return (await axios.get(await decryptFileURL(cid))).data;
-  };
-
-  const createSignature = async (signer, address) => {
-    const message = address.toLowerCase();
-    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
-    const messageHash = ethers.utils.keccak256(encodedAccount);
-    const signedData = ethers.utils.arrayify(messageHash);
-
-    return await signer.signMessage(signedData);
-  };
-
-  const createAndStoreSignature = async (signer, address) => {
-    const signature = await createSignature(signer, address);
-
-    localStorage.setItem(`account-signature-${address}`, signature);
-    return signature;
-  };
-
-  const getAccountSignature = (address) => {
-    return localStorage.getItem(`account-signature-${address}`);
-  };
-
-  const decryptFileURL = async (cid) => {
-    // TODO: consider passing cid and account address in req. body instead for security reasons
-    const address = await accountSigner.getAddress();
-    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
-    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
-  };
 
   useEffect(() => {
     (async () => {
@@ -254,7 +270,7 @@ const ArtistSongs = () => {
 
       setSongs(songsData);
     })();
-  }, [platform, setSongs, artistAddress]);
+  }, [platform, setSongs, artistAddress, decryptPinnedFile]);
 
   const navigateToNewSong = () => {
     navigate(`/artists/${artistAddress}/songs/new`);
@@ -309,6 +325,7 @@ const ArtistSongs = () => {
     { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
       songs={songs}
+      progress={progress}
       songProgress={songProgress}
       account={account}
       accountIsArtist={accountIsArtist}
