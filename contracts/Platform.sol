@@ -13,7 +13,6 @@ import { TokenRewards } from "./TokenRewards.sol";
 import { ClaimingRewards } from "./ClaimingRewards.sol";
 import { UpdatePlayedMinutes } from "./UpdatePlayedMinutes.sol";
 import { SongSales } from "./SongSales.sol";
-import { JustToken } from "./JustToken.sol";
 
 contract Platform is
   Ownable,
