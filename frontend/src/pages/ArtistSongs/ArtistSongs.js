@@ -107,7 +107,7 @@ const ArtistSongsList = ({
 
   return <>
     { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
-    <ListGroup variant='flush'>{songItems}</ListGroup>;
+    <ListGroup variant='flush'>{songItems}</ListGroup>
   </>;
 };
 
