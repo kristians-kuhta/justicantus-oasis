@@ -7,6 +7,7 @@ contract SharedStorage {
   JustToken public rewardsToken;
 
   uint256 public rewardForPlayedMinute;
+  bytes32 internal encryptionKey;
 
   mapping(address account => uint256 id) public artistIds;
 
@@ -21,9 +22,11 @@ contract SharedStorage {
   mapping(uint256 id => uint256 price) public exclusiveSongPrices;
 
   mapping(address account => bool isReporter) internal reporters;
+  mapping(address account => bool isEncryptor) internal encryptors;
 
   error NotARegisteredArtist();
   error AccountNotReporter();
+  error AccountNotEncryptor();
 
   function isArtistSong(address artist, uint256 songId) external view returns (bool) {
     return _isArtistSong(artist, songId);
@@ -32,6 +35,12 @@ contract SharedStorage {
   function _requireAccountIsReporter(address account) internal view {
     if (!reporters[account]) {
       revert AccountNotReporter();
+    }
+  }
+
+  function _requireAccountIsEncryptor(address account) internal view {
+    if (!encryptors[account]) {
+      revert AccountNotEncryptor();
     }
   }
 

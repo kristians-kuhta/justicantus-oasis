@@ -1,6 +1,7 @@
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { BigNumber } = ethers;
+const _sodium = require('libsodium-wrappers');
 
 const deployPlatform = async () => {
   const [owner, firstAccount, secondAccount] = await ethers.getSigners();
@@ -9,7 +10,12 @@ const deployPlatform = async () => {
   const defaultRewards = ethers.utils.parseEther('100');
   const defaultPricePerToken = ethers.utils.parseEther('0.0001');
 
-  const platform = await Platform.deploy(defaultRewards, defaultPricePerToken);
+  await _sodium.ready;
+  const sodium = _sodium;
+  const generatedKey = await sodium.crypto_secretstream_xchacha20poly1305_keygen();
+  const encryptionKey = '0x' + Buffer.from(generatedKey).toString('hex');
+
+  const platform = await Platform.deploy(defaultRewards, defaultPricePerToken, encryptionKey);
   const justTokenAddress = await platform.rewardsToken();
   const JustToken = await ethers.getContractFactory('JustToken');
   const justToken = await JustToken.attach(justTokenAddress);
@@ -22,6 +28,7 @@ const deployPlatform = async () => {
     defaultRewards,
     defaultPricePerToken,
     justToken,
+    encryptionKey
   };
 }
 
@@ -32,6 +39,7 @@ const registerArtist = async (platform, artistAccount, artistName) => {
     await platform.connect(artistAccount).registerArtist(artistName)
   ).to.emit(platform, 'ResourceRegistered').withArgs(
     artistAccount.address,
+
     RESOURCE_TYPE_ARTIST,
     anyValue,
     artistName
@@ -91,10 +99,19 @@ const buyTokens = async (platform, justToken, account, tokensCount) => {
   );
 };
 
+const createSignature = async (account) => {
+  const message = account.address.toLowerCase();
+  const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+  const messageHash = ethers.utils.keccak256(encodedAccount);
+  const signedData = ethers.utils.arrayify(messageHash);
+
+  return await account.signMessage(signedData);
+};
 
 module.exports = {
   deployPlatform,
   registerArtist,
   registerSong,
   buyTokens,
+  createSignature,
 };

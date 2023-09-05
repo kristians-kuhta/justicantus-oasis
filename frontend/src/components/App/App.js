@@ -34,6 +34,7 @@ export const appLoader = async () => {
     method: "eth_requestAccounts", // get the currently connected address
   });
   const provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
+  const accountSigner = await provider.getSigner();
 
   const network = await provider.getNetwork();
   const expectedChain = getExpectedChain();
@@ -79,6 +80,7 @@ export const appLoader = async () => {
 
     return {
       account,
+      accountSigner,
       platform,
       justToken,
       provider,
@@ -88,7 +90,7 @@ export const appLoader = async () => {
     };
   }
 
-  return { account, networkSwitchNeccessary };
+  return { account, accountSigner, networkSwitchNeccessary };
 }
 
 async function ensureSubsciberSignatureIsSigned(provider, platform) {
@@ -119,6 +121,7 @@ function App() {
 
   const {
     account,
+    accountSigner,
     platform,
     justToken,
     provider,
@@ -146,6 +149,7 @@ function App() {
 
   const outletContext = {
     account,
+    accountSigner,
     platform,
     justToken,
     setMessage,

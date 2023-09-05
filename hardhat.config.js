@@ -69,6 +69,36 @@ task(
   }
 );
 
+task(
+  'add_encryptor',
+  'Add an encryptor account'
+).addPositionalParam('encryptor').setAction(
+  async ({ encryptor }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.addEncryptor(encryptor, { gasLimit: 300000 })).wait();
+    console.log(`Added an encryptor: ${encryptor}`);
+  }
+);
+
+task(
+  'remove_encryptor',
+  'Remove an encryptor account'
+).addPositionalParam('encryptor').setAction(
+  async ({ encryptor }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.removeEncryptor(encryptor, { gasLimit: 300000 })).wait();
+    console.log(`Removed an encryptor: ${encryptor}`);
+  }
+);
+
 const {
   RPC_PROVIDER_URL,
   SEPOLIA_PRIVATE_KEY,

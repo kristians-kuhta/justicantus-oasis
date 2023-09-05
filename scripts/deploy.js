@@ -1,6 +1,7 @@
 const hre = require('hardhat');
 const fs = require('fs');
 const path = require('path');
+const _sodium = require('libsodium-wrappers');
 
 function saveFrontendFiles(platform) {
   const contractsDirs = [
@@ -52,7 +53,16 @@ async function main() {
   } = process.env;
 
   console.log('[Deploy] Deploying platform...');
-  platform = await Platform.deploy(REWARDS_FOR_PROPOSAL, PRICE_PER_TOKEN);
+  await _sodium.ready;
+  const sodium = _sodium;
+  const generatedKey = await sodium.crypto_secretstream_xchacha20poly1305_keygen();
+  const encryptionKey = '0x' + Buffer.from(generatedKey).toString('hex');
+
+  platform = await Platform.deploy(
+    REWARDS_FOR_PROPOSAL,
+    PRICE_PER_TOKEN,
+    encryptionKey
+  );
   console.log('[Deploy] Deploy tx send...');
 
   await platform.deployed();

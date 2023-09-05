@@ -1,0 +1,14 @@
+{
+  "name": "decryptPinnedFile",
+  "version": "1.0.0",
+  "description": "Fetches file from IPFS, decrypts it and returns decrypted file",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx functions-framework --target=decryptPinnedFile --source=index.js --port=8083"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.2.0",
+    "axios": "^1.4.0"
+  }
+}

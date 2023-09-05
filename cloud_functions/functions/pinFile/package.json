@@ -1,0 +1,19 @@
+{
+  "name": "pinFile",
+  "version": "1.0.0",
+  "description": "Encrypts and pins a file to IPFS",
+  "main": "index.js",
+  "scripts": {
+    "start": "ALLOWED_ORIGINS=* npx functions-framework --target=pinFile --source=index.js --port=8081"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.2.0",
+    "axios": "^1.4.0",
+    "busboy": "^1.6.0",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "sinon": "^15.2.0"
+  }
+}

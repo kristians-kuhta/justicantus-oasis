@@ -1,30 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { ethers } from "ethers";
+
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
+
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Badge from 'react-bootstrap/Badge';
+import Spinner from 'react-bootstrap/Spinner';
+import ProgressBar from 'react-bootstrap/ProgressBar';
 
 import { PlayFill, PauseFill } from 'react-bootstrap-icons';
 
 import { BigNumber } from 'ethers';
 
 const {
-  REACT_APP_IPFS_API_URL,
-  REACT_APP_TRACKING_FUNCTION_URL
+  REACT_APP_TRACKING_FUNCTION_URL,
+  REACT_APP_DECRYPT_FUNCTION_URL
 } = process.env;
 const TRACKING_INTERVAL_MILLISECONDS = 10000; // 10 seconds
 
-const PlayControls = ({songId, playing, subscriber, handleSongPlay}) => {
-  if (playing) {
+const PlayControls = ({songId, playing, loading, subscriber, handleSongPlay}) => {
+  if (playing && !loading) {
     return <PauseFill onClick={() => handleSongPlay(songId, subscriber)}></PauseFill>;
+  } else if (loading) {
+    const style = {
+      '--bs-spinner-width': '1em',
+      '--bs-spinner-height': '1em',
+      '--bs-spinner-border-width': '0.15em'
+    };
+    return <Spinner style={style} />;
+  } else {
+    return <PlayFill onClick={() => handleSongPlay(songId, subscriber)}></PlayFill>;
   }
-
-  return <PlayFill onClick={() => handleSongPlay(songId, subscriber)}></PlayFill>;
 };
 
 const Song = ({
   song,
+  songProgress,
   playable,
   canBePurchased,
   purchased,
@@ -34,21 +47,24 @@ const Song = ({
   handleSongBuy
 }) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
-        {song.title}
-        {
-          playable &&
-            <PlayControls songId={song.id} playing={song.playing} subscriber={subscriber} handleSongPlay={handleSongPlay} />
-        }
+    {song.title}
+    {
+      playable &&
+        <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
+          subscriber={subscriber} handleSongPlay={handleSongPlay} />
+    }
+    <ProgressBar now={songProgress} max={100} style={{ width: '10rem', '--bs-progress-height': '0.375rem', '--bs-progress-bar-bg': 'var(--bs-dark-text-emphasis)' }} />
 
     { purchased && <Badge bg="success">Owned</Badge> }
     { canBePurchased &&
         <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
     }
-      </ListGroup.Item>;
+  </ListGroup.Item>;
 };
 
 const ArtistSongsList = ({
   songs,
+  songProgress,
   account,
   accountIsArtist,
   subscriber,
@@ -71,7 +87,7 @@ const ArtistSongsList = ({
 
       const canBePurchased = !accountIsArtist() && isExclusive && !songPurchased;
 
-      return <Song key={song.id} song={song} playable={playable} exclusivePrice={exclusivePrice}
+      return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
         handleSongBuy={handleSongBuy} />;
     })).then(setSongItems);
@@ -81,7 +97,7 @@ const ArtistSongsList = ({
 };
 
 const ArtistSongs = () => {
-  const { platform, justToken, account, subscriber, setMessage } = useOutletContext();
+  const { platform, justToken, account, accountSigner, subscriber, setMessage } = useOutletContext();
   const navigate = useNavigate();
   const { artistAddress } = useParams();
 
@@ -89,6 +105,7 @@ const ArtistSongs = () => {
   const [progress, setProgress] = useState(0);
   const [trackingInterval, setTrackingInterval] = useState(null);
   const [playbackEndedSongId, setPlaybackEndedSongId] = useState(null);
+  const [songProgress, setSongProgress] = useState(0);
 
   const sendTrackingEvent = useCallback((song) => {
     const signature = localStorage.getItem('subscriberSignature');
@@ -112,8 +129,16 @@ const ArtistSongs = () => {
     }
   }, [subscriber, artistAddress]);
 
+  const handleSongProgressUpdate = (evt) => {
+    const { currentTime, duration } = evt.target;
+
+    setSongProgress(
+      Math.round(currentTime * 100 / duration)
+    )
+  };
+
   // For both play and pause/stop events
-  const handleSongPlay = useCallback((songId, subscriber) => {
+  const handleSongPlay = useCallback(async (songId, subscriber) => {
     let song = songs.find((sng) => sng.id === songId);
 
     if (song.playing) {
@@ -138,7 +163,20 @@ const ArtistSongs = () => {
       }
 
       song.playing = true;
+      song.audio.src = await decryptFileURL(song.audioCID);
+      song.loading = true;
       song.audio.play();
+      song.audio.addEventListener('canplaythrough', (evt) => {
+        song.loading = false;
+
+        // TODO: find a better way of updating loading status
+        const otherSongs = songs.filter((sng) => sng.id !== songId);
+        const newSongs = [ ...otherSongs, song ].sort((a, b) => a.order - b.order);
+        setSongs(newSongs);
+
+        evt.target.removeEventListener('canplaythrough', () => {});
+      });
+      song.audio.addEventListener('timeupdate', handleSongProgressUpdate);
     }
 
     const otherSongs = songs.filter((sng) => sng.id !== songId);
@@ -158,6 +196,37 @@ const ArtistSongs = () => {
     setPlaybackEndedSongId(null);
   }, [playbackEndedSongId, handleSongPlay, subscriber, setPlaybackEndedSongId]);
 
+  const decryptPinnedFile = async (cid) => {
+    return (await axios.get(await decryptFileURL(cid))).data;
+  };
+
+  const createSignature = async (signer, address) => {
+    const message = address.toLowerCase();
+    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+    const messageHash = ethers.utils.keccak256(encodedAccount);
+    const signedData = ethers.utils.arrayify(messageHash);
+
+    return await signer.signMessage(signedData);
+  };
+
+  const createAndStoreSignature = async (signer, address) => {
+    const signature = await createSignature(signer, address);
+
+    localStorage.setItem(`account-signature-${address}`, signature);
+    return signature;
+  };
+
+  const getAccountSignature = (address) => {
+    return localStorage.getItem(`account-signature-${address}`);
+  };
+
+  const decryptFileURL = async (cid) => {
+    // TODO: consider passing cid and account address in req. body instead for security reasons
+    const address = await accountSigner.getAddress();
+    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
+  };
+
   useEffect(() => {
     (async () => {
       const songsCount = await platform.getArtistSongsCount(artistAddress);
@@ -166,10 +235,21 @@ const ArtistSongs = () => {
       for(let i = 0; i < songsCount; i++) {
         const id = await platform.getArtistSongId(artistAddress, i);
         const uri = await platform.getSongUri(id);
-        const metadata = (await axios.get(`${REACT_APP_IPFS_API_URL}${uri}`)).data || {};
-        const audio = new Audio(`${REACT_APP_IPFS_API_URL}${metadata.cid}`);
+        const metadata = await decryptPinnedFile(uri);
+
+        const audio = new Audio();
+
         audio.addEventListener('ended', () => handleSongEnded(id.toString()));
-        songsData.push({ order: i, id: id.toString(), uri, title: metadata.title, audio, playing: false });
+        const audioCID = metadata.cid;
+        songsData.push({
+          order: i,
+          id: id.toString(),
+          uri, audioCID,
+          title: metadata.title,
+          audio,
+          playing: false,
+          loading: false,
+        });
       }
 
       setSongs(songsData);
@@ -229,6 +309,7 @@ const ArtistSongs = () => {
     { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
       songs={songs}
+      songProgress={songProgress}
       account={account}
       accountIsArtist={accountIsArtist}
       subscriber={subscriber}
