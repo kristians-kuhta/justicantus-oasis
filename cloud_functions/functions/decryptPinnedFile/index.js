@@ -36,10 +36,6 @@ const platform = new ethers.Contract(
   encryptor
 );
 
-const IPFS_OPTIONS = {
-  auth: { username: INFURA_API_KEY, password: INFURA_API_SECRET }
-};
-
 const fetchAndWriteFile = async (tmpFile, cid) => {
   const base64Credentials = Buffer.from(`${INFURA_API_KEY}:${INFURA_API_SECRET}`).toString('base64');
 
