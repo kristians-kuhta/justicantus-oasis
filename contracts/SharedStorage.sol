@@ -8,6 +8,7 @@ contract SharedStorage {
 
   uint256 public rewardForPlayedMinute;
   bytes32 internal encryptionKey;
+  uint256 public rewardsPerProposal;
 
   mapping(address account => uint256 id) public artistIds;
 
