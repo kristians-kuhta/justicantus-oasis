@@ -176,7 +176,33 @@ describe('Song voting', function() {
     });
 
     it('adds a vote for a song', async () => {
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
+      // register an artist
+      await registerArtist(platform, firstAccount, 'First Artist');
+
+      // register a song
+      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+
+      const songId = await registerSong(platform, firstAccount, ipfsID, 0);
+
+      const one = BigNumber.from(1);
+      const hundred = BigNumber.from(100);
+
+      const currentTimestamp = BigNumber.from(await time.latest());
+      const timestamp = currentTimestamp.add(hundred);
+
+      await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+      await (await platform.openVotingPeriod(timestamp)).wait();
+      await (await platform.vote(songId)).wait();
+
+      // Since this will run on confidential EVM the only way of testing whether a
+      // vote has been added is to close voting period and see if song won
+      await time.setNextBlockTimestamp(timestamp.add(one));
+      await expect(
+        platform.closeVotingPeriod()
+      ).to.emit(platform, 'VotingClosed').withArgs(songId);
     });
   });
 
