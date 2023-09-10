@@ -55,14 +55,6 @@ contract SongVoting is Ownable, SharedStorage {
     _insertVoter(msg.sender);
   }
 
-  // TODO: consider if we need to figure out how to avoid
-  //  storing both voters array and lastVotedPeriod mapping
-  function _requireHasNotVoted() internal view {
-    if (lastVotedPeriod[msg.sender] == votingPeriodEnds) {
-      revert AlreadyVoted();
-    }
-  }
-
   function closeVotingPeriod() external {
     _requireVotingPeriodEnded();
 
@@ -118,6 +110,15 @@ contract SongVoting is Ownable, SharedStorage {
     votersCount = 0;
     songsWithVotesCount = 0;
   }
+
+  // TODO: consider if we need to figure out how to avoid
+  //  storing both voters array and lastVotedPeriod mapping
+  function _requireHasNotVoted() internal view {
+    if (lastVotedPeriod[msg.sender] == votingPeriodEnds) {
+      revert AlreadyVoted();
+    }
+  }
+
 
   function _winningSongId() internal view returns (uint256 songId) {
     uint256 maxVotes;
