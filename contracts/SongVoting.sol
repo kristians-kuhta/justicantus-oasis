@@ -10,6 +10,7 @@ contract SongVoting is Ownable, SharedStorage {
   uint256 internal votingPeriodEnds;
 
   mapping(uint256 songId => uint256 votes) internal songVotes;
+  mapping(address account => uint256 periodEnd) internal lastVotedPeriod;
 
   uint256[] internal songsWithVotes;
   uint256 internal songsWithVotesCount;
@@ -23,6 +24,7 @@ contract SongVoting is Ownable, SharedStorage {
   error VotingNotActive();
   error VotingIsAlreadyOpen();
   error VotingHasNotEnded();
+  error AlreadyVoted();
 
   error RewardsPerProposalZero();
   error TimestampMustBeInFuture();
@@ -39,15 +41,26 @@ contract SongVoting is Ownable, SharedStorage {
   }
 
   function vote(uint256 _songId) external {
+    _requireSongExists(_songId);
     _requireActiveVotingPeriod();
+    _requireHasNotVoted();
 
     if (songVotes[_songId] == 0) {
       _insertSongsWithVotes(_songId);
     }
 
     songVotes[_songId]++;
+    lastVotedPeriod[msg.sender] = votingPeriodEnds;
 
     _insertVoter(msg.sender);
+  }
+
+  // TODO: consider if we need to figure out how to avoid
+  //  storing both voters array and lastVotedPeriod mapping
+  function _requireHasNotVoted() internal view {
+    if (lastVotedPeriod[msg.sender] == votingPeriodEnds) {
+      revert AlreadyVoted();
+    }
   }
 
   function closeVotingPeriod() external {

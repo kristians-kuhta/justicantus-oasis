@@ -28,6 +28,7 @@ contract SharedStorage {
   error NotARegisteredArtist();
   error AccountNotReporter();
   error AccountNotEncryptor();
+  error SongDoesNotExist();
 
   function isArtistSong(address artist, uint256 songId) external view returns (bool) {
     return _isArtistSong(artist, songId);
@@ -42,6 +43,12 @@ contract SharedStorage {
   function _requireAccountIsEncryptor(address account) internal view {
     if (!encryptors[account]) {
       revert AccountNotEncryptor();
+    }
+  }
+
+  function _requireSongExists(uint256 songId) internal view {
+    if (bytes(songURIs[songId]).length == 0) {
+      revert SongDoesNotExist();
     }
   }
 

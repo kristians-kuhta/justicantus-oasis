@@ -124,12 +124,57 @@ describe('Song voting', function() {
   });
 
   describe('Voting', function () {
+    it('reverts when voting for a song that does not exist', async () => {
+      const { platform } = await loadFixture(deployPlatform);
+
+      await expect(
+        platform.vote(123)
+      ).to.be.revertedWithCustomError(platform, 'SongDoesNotExist');
+    });
+
     it('reverts when voting and voting period is not active', async () => {
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
+      // register an artist
+      await registerArtist(platform, firstAccount, 'First Artist');
+
+      // register a song
+      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+
+      const songId = await registerSong(platform, firstAccount, ipfsID, 0);
+
+      await expect(
+        platform.vote(songId)
+      ).to.be.revertedWithCustomError(platform, 'VotingNotActive');
     });
+
     it('reverts when trying to vote for same song twice', async () => {
+      const { platform, firstAccount } = await loadFixture(deployPlatform);
 
+      // register an artist
+      await registerArtist(platform, firstAccount, 'First Artist');
+
+      // register a song
+      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+
+      const songId = await registerSong(platform, firstAccount, ipfsID, 0);
+
+      const one = BigNumber.from(1);
+      const hundred = BigNumber.from(100);
+
+      const currentTimestamp = BigNumber.from(await time.latest());
+      const timestamp = currentTimestamp.add(hundred);
+
+      await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+      await (await platform.openVotingPeriod(timestamp)).wait();
+      await (await platform.vote(songId)).wait();
+
+      await expect(
+        platform.vote(songId)
+      ).to.be.revertedWithCustomError(platform, 'AlreadyVoted');
     });
+
     it('adds a vote for a song', async () => {
 
     });
