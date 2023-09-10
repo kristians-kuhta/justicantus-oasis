@@ -1,11 +1,6 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { expect } = require("chai");
-const {
-  deployPlatform,
-  registerSong,
-  registerArtist,
-  createSignature,
-} = require('./utils');
+const { deployPlatform, createSignature } = require('./utils');
 
 describe('Audio encryption', function() {
   describe('Encryptor account', function () {
