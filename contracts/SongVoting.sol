@@ -16,6 +16,9 @@ contract SongVoting is Ownable, SharedStorage {
   address[] internal voters;
   uint256 internal votersCount;
 
+  event VotingOpen();
+  event VotingClosed(uint256 winningSongId);
+
   error VotingActive();
   error VotingNotActive();
   error VotingIsAlreadyOpen();
@@ -23,9 +26,6 @@ contract SongVoting is Ownable, SharedStorage {
 
   error RewardsPerProposalZero();
   error TimestampMustBeInFuture();
-
-  event VotingOpen();
-  event VotingClosed(uint256 winningSongId);
 
   function openVotingPeriod(uint256 endTimestamp) external onlyOwner {
     _requireInactiveVotingPeriod();
