@@ -101,6 +101,7 @@ describe('Song voting', function() {
       await (await platform.connect(secondAccount).vote(firstSongId)).wait();
 
       // close voting period
+      await time.setNextBlockTimestamp(timestampOne.add(one));
       await (await platform.closeVotingPeriod()).wait();
 
       const currentTimestampTwo = BigNumber.from(await time.latest());
@@ -116,6 +117,8 @@ describe('Song voting', function() {
       expect(await platform.isVotingPeriodActive()).to.eq(true);
 
       await (await platform.vote(secondSongId)).wait();
+
+      await time.setNextBlockTimestamp(timestampTwo.add(one));
 
       await expect(
         platform.closeVotingPeriod()
@@ -208,13 +211,88 @@ describe('Song voting', function() {
 
   describe('Closing of voting period', function () {
     it('reverts when closing voting period with that has not ended yet', async () => {
+      const { platform } = await loadFixture(deployPlatform);
 
-    });
-    it('reverts when closing voting period without', async () => {
+      const one = BigNumber.from(1);
+      const hundred = BigNumber.from(100);
 
+      const currentTimestamp = BigNumber.from(await time.latest());
+      const timestamp = currentTimestamp.add(hundred);
+
+      await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+      await (await platform.openVotingPeriod(timestamp)).wait();
+      await expect(
+        platform.closeVotingPeriod()
+      ).to.be.revertedWithCustomError(platform, 'VotingHasNotEnded');
     });
+
     it('closes a voting period', async () => {
+      const { platform } = await loadFixture(deployPlatform);
 
+      const one = BigNumber.from(1);
+      const hundred = BigNumber.from(100);
+
+      const currentTimestamp = BigNumber.from(await time.latest());
+      const timestamp = currentTimestamp.add(hundred);
+
+      await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+      await (await platform.openVotingPeriod(timestamp)).wait();
+
+      await time.setNextBlockTimestamp(timestamp.add(one));
+
+      await expect(
+        platform.closeVotingPeriod()
+      ).to.emit(platform, 'VotingClosed').withArgs(0);
+
+      expect(await platform.isVotingPeriodActive()).to.eq(false);
+    });
+
+    it('distributes voting rewards to voters', async () => {
+      const { platform, justToken, firstAccount, secondAccount } = await loadFixture(deployPlatform);
+
+      // register an artist
+      await registerArtist(platform, firstAccount, 'First Artist');
+
+      // register a song
+      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+
+      const songId = await registerSong(platform, firstAccount, ipfsID, 0);
+
+      const one = BigNumber.from(1);
+      const hundred = BigNumber.from(100);
+
+      const currentTimestamp = BigNumber.from(await time.latest());
+      const timestamp = currentTimestamp.add(hundred);
+
+      await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+      await (await platform.openVotingPeriod(timestamp)).wait();
+      await (await platform.connect(firstAccount).vote(songId)).wait();
+      await (await platform.connect(secondAccount).vote(songId)).wait();
+
+      await time.setNextBlockTimestamp(timestamp.add(one));
+
+      const firstAccountBalanceBefore = await justToken.balanceOf(firstAccount.address);
+      const secondAccountBalanceBefore = await justToken.balanceOf(secondAccount.address);
+
+      await expect(
+        platform.closeVotingPeriod()
+      ).to.emit(platform, 'VotingClosed').withArgs(songId);
+
+      expect(await platform.isVotingPeriodActive()).to.eq(false);
+
+      const firstAccountBalanceAfter = await justToken.balanceOf(firstAccount.address);
+      const secondAccountBalanceAfter = await justToken.balanceOf(secondAccount.address);
+
+      const firstAccountChange = firstAccountBalanceAfter.sub(firstAccountBalanceBefore);
+      const secondAccountChange = secondAccountBalanceAfter.sub(secondAccountBalanceBefore);
+
+      const rewardsPerProposal = await platform.rewardsPerProposal();
+
+      expect(firstAccountChange).to.eq(rewardsPerProposal.div(2));
+      expect(secondAccountChange).to.eq(rewardsPerProposal.div(2));
     });
   });
 });

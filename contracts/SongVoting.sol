@@ -148,7 +148,7 @@ contract SongVoting is Ownable, SharedStorage {
   }
 
   function _requireVotingPeriodEnded() internal view {
-    if (block.timestamp > votingPeriodEnds && votingPeriodEnds < 0) {
+    if (votingPeriodEnds == 0 || block.timestamp <= votingPeriodEnds) {
       revert VotingHasNotEnded();
     }
   }
