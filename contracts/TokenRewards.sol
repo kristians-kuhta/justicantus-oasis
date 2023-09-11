@@ -7,7 +7,6 @@ import { SharedStorage } from "./SharedStorage.sol";
 
 // TODO: consider a better naming for this contract
 contract TokenRewards is Ownable, SharedStorage {
-  uint256 public rewardsPerProposal;
   uint256 public pricePerToken;
 
   event RewardsPerProposalUpdated(uint256 rewards);

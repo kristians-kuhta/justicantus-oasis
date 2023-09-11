@@ -13,6 +13,7 @@ import { TokenRewards } from "./TokenRewards.sol";
 import { ClaimingRewards } from "./ClaimingRewards.sol";
 import { UpdatePlayedMinutes } from "./UpdatePlayedMinutes.sol";
 import { SongSales } from "./SongSales.sol";
+import { SongVoting } from "./SongVoting.sol";
 
 contract Platform is
   Ownable,
@@ -25,7 +26,8 @@ contract Platform is
   ClaimingRewards,
   UpdatePlayedMinutes,
   SongSales,
-  EncryptionKey
+  EncryptionKey,
+  SongVoting
   {
   constructor(uint256 _rewardsForProposal, uint256 _pricePerToken, bytes32 _encryptionKey)
     PlayedMinutesReward()
