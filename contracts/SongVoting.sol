@@ -119,10 +119,9 @@ contract SongVoting is Ownable, SharedStorage {
     }
   }
 
-
+  // TODO: deal with the case of equal amount of votes for top songs
   function _winningSongId() internal view returns (uint256 songId) {
     uint256 maxVotes;
-
 
     for(uint256 i=0; i < songsWithVotesCount; i++) {
       uint256 currentSongId = songsWithVotes[i];
