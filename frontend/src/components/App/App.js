@@ -117,6 +117,7 @@ function App() {
   const [ message, setMessage ] = useState({ text: '', type: null });
   const [ loggedInArtist, setLoggedInArtist ] = useState({ id: 0, name: '' });
   const [ subscriber, setSubscriber ] = useState(null);
+  const [ navbarNotificationText, setNavbarNotificationText ] = useState(null);
   const [ subscriberSignature, setSubscriberSignature ] = useState(null);
 
   const {
@@ -134,6 +135,12 @@ function App() {
     setLoggedInArtist(artistData);
     setSubscriber(subscriberData);
   }, [setLoggedInArtist, setSubscriber, artistData, subscriberData]);
+
+  useEffect(() => {
+    if (!(await platform.isVotingPeriodActive())) return;
+
+    setNavbarNotificationText('Vote for a song and get JUST tokens!');
+  }, [setNavbarNotificationText, platform]);
 
   useEffect(() => {
     if (subscriber) {
@@ -162,10 +169,11 @@ function App() {
 
   return (
     <>
-      <Navigation account={account} loggedInArtist={loggedInArtist} subscriber={subscriber} />
+      <Navigation account={account} loggedInArtist={loggedInArtist} subscriber={subscriber} notification={navbarNotificationText} />
       { message.text.length > 0 &&
         <Alert variant={message.type}>{message.text}</Alert>
       }
+
       <Outlet context={outletContext} />
     </>
   );
