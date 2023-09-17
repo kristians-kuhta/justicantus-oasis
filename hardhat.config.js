@@ -155,6 +155,13 @@ module.exports = {
       accounts: LOCAL_PRIVATE_KEY ? [LOCAL_PRIVATE_KEY] : [],
       chainId: 0x5afd
     },
+    hardhat: {
+      mining: {
+        // Must be true otherwise view functions using block.timestamp might not work
+        auto: true,
+        interval: 5000
+      }
+    }
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY
