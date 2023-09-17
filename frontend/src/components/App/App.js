@@ -77,6 +77,7 @@ export const appLoader = async () => {
     const artistName = await platform.getArtistName(account);
     const artistData = { id: artistId, name: artistName };
     const activeSubscriber = await platform.isActiveSubscriber(account);
+    const isVotingPeriodActive = await platform.isVotingPeriodActive();
 
     return {
       account,
@@ -85,6 +86,7 @@ export const appLoader = async () => {
       justToken,
       provider,
       artistData,
+      isVotingPeriodActive,
       subscriberData: activeSubscriber ? account : null,
       networkSwitchNeccessary
     };
@@ -117,7 +119,6 @@ function App() {
   const [ message, setMessage ] = useState({ text: '', type: null });
   const [ loggedInArtist, setLoggedInArtist ] = useState({ id: 0, name: '' });
   const [ subscriber, setSubscriber ] = useState(null);
-  const [ navbarNotificationText, setNavbarNotificationText ] = useState(null);
   const [ subscriberSignature, setSubscriberSignature ] = useState(null);
 
   const {
@@ -128,6 +129,7 @@ function App() {
     provider,
     artistData,
     subscriberData,
+    isVotingPeriodActive,
     networkSwitchNeccessary
   } = useLoaderData();
 
@@ -135,16 +137,6 @@ function App() {
     setLoggedInArtist(artistData);
     setSubscriber(subscriberData);
   }, [setLoggedInArtist, setSubscriber, artistData, subscriberData]);
-
-  useEffect(() => {
-    if (!platform || !platform.isVotingPeriodActive) return;
-
-    platform.isVotingPeriodActive().then((votingActive) => {
-      if (votingActive) {
-        setNavbarNotificationText('Vote for a song and get JUST tokens!');
-      }
-    });
-  }, [setNavbarNotificationText, platform]);
 
   useEffect(() => {
     if (subscriber) {
@@ -166,6 +158,7 @@ function App() {
     setMessage,
     loggedInArtist,
     setLoggedInArtist,
+    isVotingPeriodActive,
     subscriber,
     setSubscriber,
     subscriberSignature
@@ -173,7 +166,7 @@ function App() {
 
   return (
     <>
-      <Navigation account={account} loggedInArtist={loggedInArtist} subscriber={subscriber} notification={navbarNotificationText} />
+      <Navigation account={account} loggedInArtist={loggedInArtist} subscriber={subscriber} isVotingPeriodActive={isVotingPeriodActive}/>
       { message.text.length > 0 &&
         <Alert variant={message.type}>{message.text}</Alert>
       }

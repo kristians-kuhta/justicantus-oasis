@@ -3,9 +3,11 @@ import React from 'react';
 import { Container, Nav, Navbar } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
 
-const Navigation = ({ account, loggedInArtist, subscriber, notification }) => {
+const VOTING_NOTIFICATION = 'Vote for a song and get JUST tokens!';
+
+const Navigation = ({ account, loggedInArtist, subscriber, isVotingPeriodActive }) => {
   return <>
-    { notification && <div className='w-100 text-center pt-2 pb-2 bg-warning'>{ notification }</div> }
+    { isVotingPeriodActive && <div className='w-100 text-center pt-2 pb-2 bg-warning'>{ VOTING_NOTIFICATION }</div> }
     <Navbar bg='dark' variant='dark' expand='lg'>
       <Container>
         <Navbar.Brand bg='light' href='/'>Justicantus</Navbar.Brand>
