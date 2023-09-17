@@ -6,8 +6,10 @@ import {
 } from 'react-bootstrap';
 import * as ethers from 'ethers';
 
+const { BigNumber } = ethers;
+
 const ArtistDashboard = () => {
-  const { platform, setMessage } = useOutletContext();
+  const { account, platform, justToken, setMessage } = useOutletContext();
   const { artistAddress } = useParams();
 
   const [playedMinutes, setPlayedMinutes] = useState(0);
@@ -15,6 +17,7 @@ const ArtistDashboard = () => {
   const [claimedAmount, setClaimedAmount] = useState(0);
   const [unclaimedAmount, setUnclaimedAmount] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [justTokenBalance, setJustTokenBalance] = useState(BigNumber.from(0));
 
   const handleClaimRewards = async () => {
     setMessage({ text: '', type: null });
@@ -62,10 +65,15 @@ const ArtistDashboard = () => {
     setMinuteStats();
   }, [setMinuteStats]);
 
+  useEffect(() => {
+    justToken.balanceOf(account).then(setJustTokenBalance);
+  }, [justToken, setJustTokenBalance]);
+
   return <div className='mt-5 d-flex flex-column align-items-center'>
     <p>Total played minutes: {playedMinutes.toString()}</p>
     <p>Total claimed minutes: {claimedMinutes.toString()}</p>
     <p>Total claimed amount: {claimedAmount.toString()} ETH</p>
+    <p>Owned JUST tokens: {justTokenBalance.toString()}</p>
     <div>
       <p>Unclaimed minutes: {unclaimedMinutes()}</p>
       { unclaimedMinutes() > 0 && <Button onClick={handleClaimRewards}>Claim rewards</Button> }
