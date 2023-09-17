@@ -43,8 +43,10 @@ const Song = ({
   purchased,
   exclusivePrice,
   subscriber,
+  isVotingPeriodActive,
   handleSongPlay,
-  handleSongBuy
+  handleSongBuy,
+  handleSongVoting,
 }) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
     {song.title}
@@ -59,6 +61,7 @@ const Song = ({
     { canBePurchased &&
         <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
     }
+    { isVotingPeriodActive && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
   </ListGroup.Item>;
 };
 
@@ -71,9 +74,11 @@ const ArtistSongsList = ({
   subscriber,
   handleSongPlay,
   handleSongBuy,
+  handleSongVoting,
   platform,
 }) => {
   const [songItems, setSongItems] = useState([]);
+  const { isVotingPeriodActive } = useOutletContext();
 
   useEffect(() => {
     Promise.all(songs.map(async (song) => {
@@ -89,13 +94,15 @@ const ArtistSongsList = ({
 
       return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
-        handleSongBuy={handleSongBuy} />;
+        handleSongBuy={handleSongBuy} handleSongVoting={handleSongVoting} isVotingPeriodActive={isVotingPeriodActive}/>;
     })).then(setSongItems);
   }, [
     setSongItems,
     accountIsArtist,
+    isVotingPeriodActive,
     handleSongPlay,
     handleSongBuy,
+    handleSongVoting,
     platform,
     songs,
     subscriber,
@@ -103,7 +110,7 @@ const ArtistSongsList = ({
     songProgress
   ]);
 
-  if (songItems.length > 0) return null;
+  if (songItems.length === 0) return null;
 
   return <>
     { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
@@ -317,12 +324,33 @@ const ArtistSongs = () => {
     }
   };
 
+  const handleSongVoting = async (songId) => {
+    try {
+      const tx = await platform.vote(songId);
+      setProgress(50);
+
+      await tx.wait();
+      setProgress(100);
+      setMessage({
+        text: `Vote registered!`,
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setProgress(0);
+      setMessage({
+        text: `Could not vote for the song!`,
+        type: 'danger'
+      });
+    }
+  };
+
   const accountIsArtist = () => {
     return account === artistAddress.toLowerCase();
   };
 
   return <>
-    { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
+    { accountIsArtist() && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
       songs={songs}
       progress={progress}
@@ -332,6 +360,7 @@ const ArtistSongs = () => {
       subscriber={subscriber}
       handleSongPlay={handleSongPlay}
       handleSongBuy={handleSongBuy}
+      handleSongVoting={handleSongVoting}
       platform={platform}
     />
   </>;
