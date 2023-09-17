@@ -7,7 +7,7 @@ import { SharedStorage } from "./SharedStorage.sol";
 contract SongVoting is Ownable, SharedStorage {
   // NOTE: Period being 0 means that voting is not active.
   //       This is the last timestamp that you can vote.
-  uint256 internal votingPeriodEnds;
+  uint256 public votingPeriodEnds;
 
   mapping(uint256 songId => uint256 votes) internal songVotes;
   mapping(address account => uint256 periodEnd) internal lastVotedPeriod;
