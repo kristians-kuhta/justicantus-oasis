@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom';
 
 const Navigation = ({ account, loggedInArtist, subscriber, notification }) => {
   return <>
-    { notification && <div className='w-100'>{ notification }</div> }
+    { notification && <div className='w-100 text-center pt-2 pb-2 bg-warning'>{ notification }</div> }
     <Navbar bg='dark' variant='dark' expand='lg'>
       <Container>
         <Navbar.Brand bg='light' href='/'>Justicantus</Navbar.Brand>
