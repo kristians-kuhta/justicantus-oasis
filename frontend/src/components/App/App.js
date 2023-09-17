@@ -137,9 +137,13 @@ function App() {
   }, [setLoggedInArtist, setSubscriber, artistData, subscriberData]);
 
   useEffect(() => {
-    if (!(await platform.isVotingPeriodActive())) return;
+    if (!platform || !platform.isVotingPeriodActive) return;
 
-    setNavbarNotificationText('Vote for a song and get JUST tokens!');
+    platform.isVotingPeriodActive().then((votingActive) => {
+      if (votingActive) {
+        setNavbarNotificationText('Vote for a song and get JUST tokens!');
+      }
+    });
   }, [setNavbarNotificationText, platform]);
 
   useEffect(() => {
