@@ -6,7 +6,7 @@ import {
 } from 'react-bootstrap';
 import * as ethers from 'ethers';
 
-const { BigNumber } = ethers;
+const { BigNumber, utils } = ethers;
 
 const ArtistDashboard = () => {
   const { account, platform, justToken, setMessage } = useOutletContext();
@@ -51,10 +51,10 @@ const ArtistDashboard = () => {
     platform.artistClaimedMinutes(artistAddress).then(setClaimedMinutes);
     platform.rewardForPlayedMinute().then((reward) => {
       const claimedAmountWei = claimedMinutes * reward;
-      const claimedAmountEth = ethers.utils.formatEther(claimedAmountWei);
+      const claimedAmountEth = utils.formatEther(claimedAmountWei);
 
       const unclaimedAmountWei = unclaimedMinutes() * reward;
-      const unclaimedAmountEth = ethers.utils.formatEther(unclaimedAmountWei);
+      const unclaimedAmountEth = utils.formatEther(unclaimedAmountWei);
 
       setClaimedAmount(claimedAmountEth);
       setUnclaimedAmount(unclaimedAmountEth);
@@ -66,14 +66,16 @@ const ArtistDashboard = () => {
   }, [setMinuteStats]);
 
   useEffect(() => {
-    justToken.balanceOf(account).then(setJustTokenBalance);
+    justToken.balanceOf(account).then((balance) => {
+      setJustTokenBalance(utils.formatEther(balance.toString()))
+    });
   }, [justToken, setJustTokenBalance, account]);
 
   return <div className='mt-5 d-flex flex-column align-items-center'>
     <p>Total played minutes: {playedMinutes.toString()}</p>
     <p>Total claimed minutes: {claimedMinutes.toString()}</p>
     <p>Total claimed amount: {claimedAmount.toString()} ETH</p>
-    <p>Owned JUST tokens: {justTokenBalance.toString()}</p>
+    <p>Owned tokens: {justTokenBalance} JUST</p>
     <div>
       <p>Unclaimed minutes: {unclaimedMinutes()}</p>
       { unclaimedMinutes() > 0 && <Button onClick={handleClaimRewards}>Claim rewards</Button> }
