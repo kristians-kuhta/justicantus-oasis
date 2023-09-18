@@ -10,7 +10,7 @@ import Badge from 'react-bootstrap/Badge';
 import Spinner from 'react-bootstrap/Spinner';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
-import { PlayFill, PauseFill } from 'react-bootstrap-icons';
+import { PlayFill, PauseFill, AwardFill } from 'react-bootstrap-icons';
 
 import { BigNumber } from 'ethers';
 
@@ -44,12 +44,16 @@ const Song = ({
   exclusivePrice,
   subscriber,
   isVotingPeriodActive,
+  isLastWinningSong,
   handleSongPlay,
   handleSongBuy,
   handleSongVoting,
 }) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
-    {song.title}
+    <div>
+      { isLastWinningSong && <AwardFill style={{marginRight: '0.5rem'}} /> }
+      {song.title}
+    </div>
     {
       playable &&
         <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
@@ -78,7 +82,7 @@ const ArtistSongsList = ({
   platform,
 }) => {
   const [songItems, setSongItems] = useState([]);
-  const { isVotingPeriodActive } = useOutletContext();
+  const { isVotingPeriodActive, lastWinningSongId } = useOutletContext();
 
   useEffect(() => {
     Promise.all(songs.map(async (song) => {
@@ -91,15 +95,16 @@ const ArtistSongsList = ({
         accountIsArtist();
 
       const canBePurchased = !accountIsArtist() && isExclusive && !songPurchased;
-
       return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
-        handleSongBuy={handleSongBuy} handleSongVoting={handleSongVoting} isVotingPeriodActive={isVotingPeriodActive}/>;
+        handleSongBuy={handleSongBuy} handleSongVoting={handleSongVoting} isVotingPeriodActive={isVotingPeriodActive}
+        isLastWinningSong={lastWinningSongId === song.id} />;
     })).then(setSongItems);
   }, [
     setSongItems,
     accountIsArtist,
     isVotingPeriodActive,
+    lastWinningSongId,
     handleSongPlay,
     handleSongBuy,
     handleSongVoting,

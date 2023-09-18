@@ -78,6 +78,10 @@ export const appLoader = async () => {
     const artistData = { id: artistId, name: artistName };
     const activeSubscriber = await platform.isActiveSubscriber(account);
     const isVotingPeriodActive = await platform.isVotingPeriodActive();
+    const votingClosedFilter = platform.filters['VotingClosed']();
+    const votingClosedEvents = await platform.queryFilter(votingClosedFilter);
+    const lastWinningSongId = votingClosedEvents.length > 0 ?
+      votingClosedEvents[votingClosedEvents.length - 1].args.winningSongId.toString() : null;
 
     return {
       account,
@@ -87,6 +91,7 @@ export const appLoader = async () => {
       provider,
       artistData,
       isVotingPeriodActive,
+      lastWinningSongId,
       subscriberData: activeSubscriber ? account : null,
       networkSwitchNeccessary
     };
@@ -130,6 +135,7 @@ function App() {
     artistData,
     subscriberData,
     isVotingPeriodActive,
+    lastWinningSongId,
     networkSwitchNeccessary
   } = useLoaderData();
 
@@ -159,6 +165,7 @@ function App() {
     loggedInArtist,
     setLoggedInArtist,
     isVotingPeriodActive,
+    lastWinningSongId,
     subscriber,
     setSubscriber,
     subscriberSignature
