@@ -67,7 +67,7 @@ const ArtistDashboard = () => {
 
   useEffect(() => {
     justToken.balanceOf(account).then(setJustTokenBalance);
-  }, [justToken, setJustTokenBalance]);
+  }, [justToken, setJustTokenBalance, account]);
 
   return <div className='mt-5 d-flex flex-column align-items-center'>
     <p>Total played minutes: {playedMinutes.toString()}</p>
