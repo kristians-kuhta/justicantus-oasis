@@ -10,6 +10,8 @@ contract SharedStorage {
   bytes32 internal encryptionKey;
   uint256 public rewardsPerProposal;
 
+  string private constant SIGNATURE_PREFIX = "\x19Ethereum Signed Message:\n32";
+
   mapping(address account => uint256 id) public artistIds;
 
   mapping(uint256 id => string uri) internal songURIs;
@@ -29,6 +31,7 @@ contract SharedStorage {
   error AccountNotReporter();
   error AccountNotEncryptor();
   error SongDoesNotExist();
+  error InvalidSignature();
 
   function isArtistSong(address artist, uint256 songId) external view returns (bool) {
     return _isArtistSong(artist, songId);
@@ -67,5 +70,38 @@ contract SharedStorage {
       }
     }
     return false;
+  }
+
+  function _requireSignatureValid(address account, bytes calldata signature) internal pure {
+    // TODO: consider using the same approach for subscriber signatures
+    bytes32 messageHash = keccak256(abi.encode(account));
+
+    if (!_verifySignature(account, messageHash, signature)) {
+      revert InvalidSignature();
+    }
+  }
+
+  function _verifySignature(
+    address signer,
+    bytes32 messageHash,
+    bytes calldata signature
+  ) internal pure returns (bool) {
+
+    (bytes32 r, bytes32 s, uint8 v) = _splitSignature(signature);
+
+    bytes32 prefixedHash = keccak256(
+      abi.encodePacked(SIGNATURE_PREFIX, messageHash)
+    );
+    address recoveredSigner = ecrecover(prefixedHash, v, r, s);
+
+    // Check if the recovered public key matches the expected signer's address
+    return recoveredSigner != address(0) && recoveredSigner == signer;
+  }
+
+  function _splitSignature(bytes calldata signature) internal pure
+    returns (bytes32 r, bytes32 s, uint8 v) {
+    r = bytes32(signature[0:32]);
+    s = bytes32(signature[32:64]);
+    v = uint8(bytes1(signature[64:65]));
   }
 }

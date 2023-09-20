@@ -70,6 +70,28 @@ contract SongVoting is Ownable, SharedStorage {
     return _isVotingPeriodActive();
   }
 
+  // NOTE: we require account and signature, because only account should know if
+  //       it has voted
+  function hasVotedCurrentPeriod(address account, bytes calldata signature) external view returns (bool) {
+    if (!_isVotingPeriodActive()) {
+      return false;
+    }
+
+    bytes32 messageHash = keccak256(abi.encode(account));
+
+    if (!_verifySignature(account, messageHash, signature)) {
+      return false;
+    }
+
+    for(uint256 i=0; i < votersCount; i++) {
+      if (voters[i] == account) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   function _insertSongsWithVotes(uint256 songId) internal {
     // Array needs to be expanded
     if (songsWithVotes.length == songsWithVotesCount) {
