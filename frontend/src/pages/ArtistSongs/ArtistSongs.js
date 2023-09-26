@@ -50,7 +50,6 @@ const Song = ({
   handleSongBuy,
   handleSongVoting,
 }) => {
-  console.log({isVotingPeriodActive, hasVotedCurrentPeriod});
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
     <div>
       { isLastWinningSong && <AwardFill style={{marginRight: '0.5rem'}} /> }
