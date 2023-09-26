@@ -44,11 +44,13 @@ const Song = ({
   exclusivePrice,
   subscriber,
   isVotingPeriodActive,
+  hasVotedCurrentPeriod,
   isLastWinningSong,
   handleSongPlay,
   handleSongBuy,
   handleSongVoting,
 }) => {
+  console.log({isVotingPeriodActive, hasVotedCurrentPeriod});
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
     <div>
       { isLastWinningSong && <AwardFill style={{marginRight: '0.5rem'}} /> }
@@ -65,7 +67,7 @@ const Song = ({
     { canBePurchased &&
         <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
     }
-    { isVotingPeriodActive && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
+    { isVotingPeriodActive && !hasVotedCurrentPeriod && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
   </ListGroup.Item>;
 };
 
@@ -82,7 +84,7 @@ const ArtistSongsList = ({
   platform,
 }) => {
   const [songItems, setSongItems] = useState([]);
-  const { isVotingPeriodActive, lastWinningSongId } = useOutletContext();
+  const { isVotingPeriodActive, hasVotedCurrentPeriod, lastWinningSongId } = useOutletContext();
 
   useEffect(() => {
     Promise.all(songs.map(async (song) => {
@@ -98,12 +100,14 @@ const ArtistSongsList = ({
       return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
         handleSongBuy={handleSongBuy} handleSongVoting={handleSongVoting} isVotingPeriodActive={isVotingPeriodActive}
+        hasVotedCurrentPeriod={hasVotedCurrentPeriod}
         isLastWinningSong={lastWinningSongId === song.id} />;
     })).then(setSongItems);
   }, [
     setSongItems,
     accountIsArtist,
     isVotingPeriodActive,
+    hasVotedCurrentPeriod,
     lastWinningSongId,
     handleSongPlay,
     handleSongBuy,
@@ -124,7 +128,7 @@ const ArtistSongsList = ({
 };
 
 const ArtistSongs = () => {
-  const { platform, justToken, account, accountSigner, subscriber, setMessage } = useOutletContext();
+  const { platform, justToken, account, accountSigner, accountSignature, subscriber, setMessage } = useOutletContext();
   const navigate = useNavigate();
   const { artistAddress } = useParams();
 
@@ -164,37 +168,15 @@ const ArtistSongs = () => {
     )
   };
 
-  const createAndStoreSignature = useCallback(async (signer, address) => {
-    const signature = await createSignature(signer, address);
-
-    localStorage.setItem(`account-signature-${address}`, signature);
-    return signature;
-  }, []);
-
   const decryptFileURL = useCallback(async (cid) => {
     // TODO: consider passing cid and account address in req. body instead for security reasons
     const address = await accountSigner.getAddress();
-    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
-    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
-  }, [accountSigner, createAndStoreSignature]);
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${accountSignature}`;
+  }, [accountSigner, accountSignature]);
 
   const decryptPinnedFile = useCallback(async (cid) => {
     return (await axios.get(await decryptFileURL(cid))).data;
   }, [decryptFileURL]);
-
-  const createSignature = async (signer, address) => {
-    const message = address.toLowerCase();
-    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
-    const messageHash = ethers.utils.keccak256(encodedAccount);
-    const signedData = ethers.utils.arrayify(messageHash);
-
-    return await signer.signMessage(signedData);
-  };
-
-  const getAccountSignature = (address) => {
-    return localStorage.getItem(`account-signature-${address}`);
-  };
-
 
   // For both play and pause/stop events
   const handleSongPlay = useCallback(async (songId, subscriber) => {

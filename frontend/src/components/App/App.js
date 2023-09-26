@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import Navigation from '../Navigation/Navigation.js';
 import NetworkSwitchModal from '../NetworkSwitchModal/NetworkSwitchModal.js';
@@ -35,6 +35,7 @@ export const appLoader = async () => {
   });
   const provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
   const accountSigner = await provider.getSigner();
+  const accountSignature = getAccountSignature(account) || await createAndStoreSignature(accountSigner, account);
 
   const network = await provider.getNetwork();
   const expectedChain = getExpectedChain();
@@ -64,13 +65,13 @@ export const appLoader = async () => {
     const platform = new ethers.Contract(
       contractAddresses.Platform,
       PlatformArtifact.abi,
-      provider.getSigner(0)
+      accountSigner
     );
 
     const justToken = new ethers.Contract(
       contractAddresses.JustToken,
       JustTokenArtifact.abi,
-      provider.getSigner(0)
+      accountSigner
     );
 
     const artistId = await platform.artistIds(account);
@@ -78,6 +79,9 @@ export const appLoader = async () => {
     const artistData = { id: artistId, name: artistName };
     const activeSubscriber = await platform.isActiveSubscriber(account);
     const isVotingPeriodActive = await platform.isVotingPeriodActive();
+
+    const hasVotedCurrentPeriod = isVotingPeriodActive ? await platform.hasVotedCurrentPeriod(account, accountSignature) : false;
+
     const votingClosedFilter = platform.filters['VotingClosed']();
     const votingClosedEvents = await platform.queryFilter(votingClosedFilter);
     const lastWinningSongId = votingClosedEvents.length > 0 ?
@@ -86,11 +90,13 @@ export const appLoader = async () => {
     return {
       account,
       accountSigner,
+      accountSignature,
       platform,
       justToken,
       provider,
       artistData,
       isVotingPeriodActive,
+      hasVotedCurrentPeriod,
       lastWinningSongId,
       subscriberData: activeSubscriber ? account : null,
       networkSwitchNeccessary
@@ -116,9 +122,30 @@ async function ensureSubsciberSignatureIsSigned(provider, platform) {
   return signature;
 }
 
-function getExpectedChain() {
+const getExpectedChain = () => {
   return CHAINS[process.env.NODE_ENV];
-}
+};
+
+const createAndStoreSignature = async (signer, address) => {
+  const signature = await createSignature(signer, address);
+
+  localStorage.setItem(`account-signature-${address}`, signature);
+
+  return signature;
+};
+
+const createSignature = async (signer, address) => {
+  const message = address.toLowerCase();
+  const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
+  const messageHash = ethers.utils.keccak256(encodedAccount);
+  const signedData = ethers.utils.arrayify(messageHash);
+
+  return await signer.signMessage(signedData);
+};
+
+const getAccountSignature = (address) => {
+  return localStorage.getItem(`account-signature-${address}`);
+};
 
 function App() {
   const [ message, setMessage ] = useState({ text: '', type: null });
@@ -129,12 +156,14 @@ function App() {
   const {
     account,
     accountSigner,
+    accountSignature,
     platform,
     justToken,
     provider,
     artistData,
     subscriberData,
     isVotingPeriodActive,
+    hasVotedCurrentPeriod,
     lastWinningSongId,
     networkSwitchNeccessary
   } = useLoaderData();
@@ -159,12 +188,14 @@ function App() {
   const outletContext = {
     account,
     accountSigner,
+    accountSignature,
     platform,
     justToken,
     setMessage,
     loggedInArtist,
     setLoggedInArtist,
     isVotingPeriodActive,
+    hasVotedCurrentPeriod,
     lastWinningSongId,
     subscriber,
     setSubscriber,
