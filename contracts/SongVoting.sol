@@ -7,7 +7,7 @@ import { SharedStorage } from "./SharedStorage.sol";
 contract SongVoting is Ownable, SharedStorage {
   // NOTE: Period being 0 means that voting is not active.
   //       This is the last timestamp that you can vote.
-  uint256 internal votingPeriodEnds;
+  uint256 public votingPeriodEnds;
 
   mapping(uint256 songId => uint256 votes) internal songVotes;
   mapping(address account => uint256 periodEnd) internal lastVotedPeriod;
@@ -68,6 +68,28 @@ contract SongVoting is Ownable, SharedStorage {
 
   function isVotingPeriodActive() external view returns (bool) {
     return _isVotingPeriodActive();
+  }
+
+  // NOTE: we require account and signature, because only account should know if
+  //       it has voted
+  function hasVotedCurrentPeriod(address account, bytes calldata signature) external view returns (bool) {
+    if (!_isVotingPeriodActive()) {
+      return false;
+    }
+
+    bytes32 messageHash = keccak256(abi.encode(account));
+
+    if (!_verifySignature(account, messageHash, signature)) {
+      return false;
+    }
+
+    for(uint256 i=0; i < votersCount; i++) {
+      if (voters[i] == account) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   function _insertSongsWithVotes(uint256 songId) internal {

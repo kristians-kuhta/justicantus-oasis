@@ -99,6 +99,37 @@ task(
   }
 );
 
+task(
+  'open_voting_period',
+  'Open a voting period'
+).addPositionalParam('endTimestamp').setAction(
+  async ({ endTimestamp }, _hre, _runSuper) => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    await (await platform.openVotingPeriod(endTimestamp, { gasLimit: 300000 })).wait();
+    console.log(`Opened a voting period that end at: ${endTimestamp}`);
+  }
+);
+
+task(
+  'close_voting_period',
+  'Close a voting period'
+).setAction(
+  async () => {
+    const contractAddresses = require('./build/contract-addresses.json');
+
+    const Platform = await ethers.getContractFactory("Platform");
+    const platform = await Platform.attach(contractAddresses.Platform);
+
+    const endTimestamp = await platform.votingPeriodEnds();
+    await (await platform.closeVotingPeriod({ gasLimit: 300000 })).wait();
+    console.log(`Closed the voting period that ended at: ${endTimestamp}`);
+  }
+);
+
 const {
   RPC_PROVIDER_URL,
   SEPOLIA_PRIVATE_KEY,
@@ -124,6 +155,13 @@ module.exports = {
       accounts: LOCAL_PRIVATE_KEY ? [LOCAL_PRIVATE_KEY] : [],
       chainId: 0x5afd
     },
+    hardhat: {
+      mining: {
+        // Must be true otherwise view functions using block.timestamp might not work
+        auto: true,
+        interval: 5000
+      }
+    }
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY

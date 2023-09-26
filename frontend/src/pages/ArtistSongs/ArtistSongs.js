@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { ethers } from "ethers";
 
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
 
@@ -10,7 +9,7 @@ import Badge from 'react-bootstrap/Badge';
 import Spinner from 'react-bootstrap/Spinner';
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
-import { PlayFill, PauseFill } from 'react-bootstrap-icons';
+import { PlayFill, PauseFill, AwardFill } from 'react-bootstrap-icons';
 
 import { BigNumber } from 'ethers';
 
@@ -43,11 +42,18 @@ const Song = ({
   purchased,
   exclusivePrice,
   subscriber,
+  isVotingPeriodActive,
+  hasVotedCurrentPeriod,
+  isLastWinningSong,
   handleSongPlay,
-  handleSongBuy
+  handleSongBuy,
+  handleSongVoting,
 }) => {
   return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
-    {song.title}
+    <div>
+      { isLastWinningSong && <AwardFill style={{marginRight: '0.5rem'}} /> }
+      {song.title}
+    </div>
     {
       playable &&
         <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
@@ -59,6 +65,7 @@ const Song = ({
     { canBePurchased &&
         <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
     }
+    { isVotingPeriodActive && !hasVotedCurrentPeriod && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
   </ListGroup.Item>;
 };
 
@@ -71,9 +78,11 @@ const ArtistSongsList = ({
   subscriber,
   handleSongPlay,
   handleSongBuy,
+  handleSongVoting,
   platform,
 }) => {
   const [songItems, setSongItems] = useState([]);
+  const { isVotingPeriodActive, hasVotedCurrentPeriod, lastWinningSongId } = useOutletContext();
 
   useEffect(() => {
     Promise.all(songs.map(async (song) => {
@@ -86,16 +95,21 @@ const ArtistSongsList = ({
         accountIsArtist();
 
       const canBePurchased = !accountIsArtist() && isExclusive && !songPurchased;
-
       return <Song key={song.id} song={song} songProgress={songProgress} playable={playable} exclusivePrice={exclusivePrice}
         subscriber={subscriber} canBePurchased={canBePurchased} purchased={songPurchased} handleSongPlay={handleSongPlay}
-        handleSongBuy={handleSongBuy} />;
+        handleSongBuy={handleSongBuy} handleSongVoting={handleSongVoting} isVotingPeriodActive={isVotingPeriodActive}
+        hasVotedCurrentPeriod={hasVotedCurrentPeriod}
+        isLastWinningSong={lastWinningSongId === song.id} />;
     })).then(setSongItems);
   }, [
     setSongItems,
     accountIsArtist,
+    isVotingPeriodActive,
+    hasVotedCurrentPeriod,
+    lastWinningSongId,
     handleSongPlay,
     handleSongBuy,
+    handleSongVoting,
     platform,
     songs,
     subscriber,
@@ -103,7 +117,7 @@ const ArtistSongsList = ({
     songProgress
   ]);
 
-  if (songItems.length > 0) return null;
+  if (songItems.length === 0) return null;
 
   return <>
     { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
@@ -112,7 +126,7 @@ const ArtistSongsList = ({
 };
 
 const ArtistSongs = () => {
-  const { platform, justToken, account, accountSigner, subscriber, setMessage } = useOutletContext();
+  const { platform, justToken, account, accountSigner, accountSignature, subscriber, setMessage } = useOutletContext();
   const navigate = useNavigate();
   const { artistAddress } = useParams();
 
@@ -152,37 +166,15 @@ const ArtistSongs = () => {
     )
   };
 
-  const createAndStoreSignature = useCallback(async (signer, address) => {
-    const signature = await createSignature(signer, address);
-
-    localStorage.setItem(`account-signature-${address}`, signature);
-    return signature;
-  }, []);
-
   const decryptFileURL = useCallback(async (cid) => {
     // TODO: consider passing cid and account address in req. body instead for security reasons
     const address = await accountSigner.getAddress();
-    const signature = getAccountSignature(address) || await createAndStoreSignature(accountSigner, address);
-    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${signature}`;
-  }, [accountSigner, createAndStoreSignature]);
+    return `${REACT_APP_DECRYPT_FUNCTION_URL}?cid=${cid}&account=${address}&signature=${accountSignature}`;
+  }, [accountSigner, accountSignature]);
 
   const decryptPinnedFile = useCallback(async (cid) => {
     return (await axios.get(await decryptFileURL(cid))).data;
   }, [decryptFileURL]);
-
-  const createSignature = async (signer, address) => {
-    const message = address.toLowerCase();
-    const encodedAccount = ethers.utils.defaultAbiCoder.encode(['address'], [message]);
-    const messageHash = ethers.utils.keccak256(encodedAccount);
-    const signedData = ethers.utils.arrayify(messageHash);
-
-    return await signer.signMessage(signedData);
-  };
-
-  const getAccountSignature = (address) => {
-    return localStorage.getItem(`account-signature-${address}`);
-  };
-
 
   // For both play and pause/stop events
   const handleSongPlay = useCallback(async (songId, subscriber) => {
@@ -317,12 +309,33 @@ const ArtistSongs = () => {
     }
   };
 
+  const handleSongVoting = async (songId) => {
+    try {
+      const tx = await platform.vote(songId);
+      setProgress(50);
+
+      await tx.wait();
+      setProgress(100);
+      setMessage({
+        text: `Vote registered!`,
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setProgress(0);
+      setMessage({
+        text: `Could not vote for the song!`,
+        type: 'danger'
+      });
+    }
+  };
+
   const accountIsArtist = () => {
     return account === artistAddress.toLowerCase();
   };
 
   return <>
-    { accountIsArtist()  && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
+    { accountIsArtist() && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
     <ArtistSongsList
       songs={songs}
       progress={progress}
@@ -332,6 +345,7 @@ const ArtistSongs = () => {
       subscriber={subscriber}
       handleSongPlay={handleSongPlay}
       handleSongBuy={handleSongBuy}
+      handleSongVoting={handleSongVoting}
       platform={platform}
     />
   </>;

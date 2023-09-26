@@ -12,6 +12,7 @@ const functions = require('@google-cloud/functions-framework');
 
 const sodium = require('libsodium-wrappers');
 const ethers = require("ethers");
+const { BigNumber } = ethers;
 
 const corsMiddleware = require('../../middlewares/corsMiddleware.js');
 
@@ -80,19 +81,7 @@ const decryptFile = async (filePath, encryptionKeyBytes) => {
 const verifyAccountHasAccess = async (account, cid) => {
   if (await platform.isActiveSubscriber(account)) return true;
 
-  const artistSongsCount = await platform.getArtistSongsCount(account);
-
-  for(let idx = 0; idx < artistSongsCount; idx++) {
-    const songId = await platform.getArtistSongId(account, idx);
-    const songUri = await platform.getSongUri(songId);
-
-    if (songUri !== cid) continue;
-
-    const isArtistSong = await platform.isArtistSong(account, songId);
-    if (isArtistSong) return true;
-  }
-
-  return false;
+  return (await platform.getArtistId(account)).toString() !== BigNumber.from(0);
 };
 
 const verifyAccountSignature = async (account, signature) => {

@@ -6,7 +6,31 @@ const {
   deployPlatform,
   registerSong,
   registerArtist,
+  createSignature,
 } = require('./utils');
+
+async function registerSongAndVote(platform, artistAccount, voterAccount) {
+  // register an artist
+  await registerArtist(platform, artistAccount, 'First Artist');
+
+  // register a song
+  const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
+
+  const songId = await registerSong(platform, artistAccount, ipfsID, 0);
+
+  const one = BigNumber.from(1);
+  const hundred = BigNumber.from(100);
+
+  const currentTimestamp = BigNumber.from(await time.latest());
+  const timestamp = currentTimestamp.add(hundred);
+
+  await time.setNextBlockTimestamp(currentTimestamp.add(one));
+
+  await (await platform.openVotingPeriod(timestamp)).wait();
+  await (await platform.connect(voterAccount).vote(songId)).wait();
+
+  return { songId, timestamp, one };
+}
 
 describe('Song voting', function() {
   describe('Opening of voting period', function () {
@@ -179,26 +203,9 @@ describe('Song voting', function() {
     });
 
     it('adds a vote for a song', async () => {
-      const { platform, firstAccount } = await loadFixture(deployPlatform);
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
 
-      // register an artist
-      await registerArtist(platform, firstAccount, 'First Artist');
-
-      // register a song
-      const ipfsID = 'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB';
-
-      const songId = await registerSong(platform, firstAccount, ipfsID, 0);
-
-      const one = BigNumber.from(1);
-      const hundred = BigNumber.from(100);
-
-      const currentTimestamp = BigNumber.from(await time.latest());
-      const timestamp = currentTimestamp.add(hundred);
-
-      await time.setNextBlockTimestamp(currentTimestamp.add(one));
-
-      await (await platform.openVotingPeriod(timestamp)).wait();
-      await (await platform.vote(songId)).wait();
+      const { songId, timestamp, one } = await registerSongAndVote(platform, firstAccount, secondAccount);
 
       // Since this will run on confidential EVM the only way of testing whether a
       // vote has been added is to close voting period and see if song won
@@ -293,6 +300,52 @@ describe('Song voting', function() {
 
       expect(firstAccountChange).to.eq(rewardsPerProposal.div(2));
       expect(secondAccountChange).to.eq(rewardsPerProposal.div(2));
+    });
+  });
+
+  describe('Current period voting status', function () {
+    it('returns false when voting period is not active', async () => {
+      const { platform, secondAccount } = await loadFixture(deployPlatform);
+
+      const signature = await createSignature(secondAccount);
+
+      expect(
+        await platform.hasVotedCurrentPeriod(secondAccount.address, signature)
+      ).to.eq(false);
+    });
+
+    it('returns false when signature is not valid', async () => {
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
+
+      await registerSongAndVote(platform, firstAccount, secondAccount);
+
+      const signature = await createSignature(firstAccount);
+
+      expect(
+        await platform.hasVotedCurrentPeriod(secondAccount.address, signature)
+      ).to.eq(false);
+    });
+
+    it('returns false when account has not voted during current period', async () => {
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
+
+      const signature = await createSignature(secondAccount);
+
+      expect(
+        await platform.hasVotedCurrentPeriod(secondAccount.address, signature)
+      ).to.eq(false);
+    });
+
+    it('returns true when account has voted during current period', async () => {
+      const { platform, firstAccount, secondAccount } = await loadFixture(deployPlatform);
+
+      await registerSongAndVote(platform, firstAccount, secondAccount);
+
+      const signature = await createSignature(secondAccount);
+
+      expect(
+        await platform.hasVotedCurrentPeriod(secondAccount.address, signature)
+      ).to.eq(true);
     });
   });
 });
