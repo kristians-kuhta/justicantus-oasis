@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Navigation from '../Navigation/Navigation.js';
 import NetworkSwitchModal from '../NetworkSwitchModal/NetworkSwitchModal.js';

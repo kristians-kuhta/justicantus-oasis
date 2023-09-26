@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { ethers } from "ethers";
 
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
 
