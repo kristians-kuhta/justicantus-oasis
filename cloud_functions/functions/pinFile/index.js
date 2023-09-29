@@ -17,11 +17,11 @@ const {
   IPFS_API_KEY,
   IPFS_API_SECRET,
   IPFS_ADD_ENDPOINT,
-  PRC_API_URL,
+  RPC_API_URL,
   ENCRYPTOR_PRIVATE_KEY
 } = process.env;
 
-const provider = new ethers.providers.JsonRpcProvider(PRC_API_URL);
+const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
 const contractAddresses = require("../../contracts/contract-addresses.json");
