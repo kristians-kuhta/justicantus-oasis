@@ -205,9 +205,7 @@ function App() {
   return (
     <>
       <Navigation account={account} loggedInArtist={loggedInArtist} subscriber={subscriber} isVotingPeriodActive={isVotingPeriodActive}/>
-      { message.text.length > 0 &&
-        <Alert variant={message.type}>{message.text}</Alert>
-      }
+      { message.text.length > 0 && <Alert variant={message.type}>{message.text}</Alert> }
 
       <Outlet context={outletContext} />
     </>
