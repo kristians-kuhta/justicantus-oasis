@@ -49,23 +49,25 @@ const Song = ({
   handleSongBuy,
   handleSongVoting,
 }) => {
-  return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-around' >
+  return <ListGroup.Item as='li' variant='dark' key={song.id} className='d-flex align-items-center justify-content-between pe-5 px-5' >
     <div>
       { isLastWinningSong && <AwardFill style={{marginRight: '0.5rem'}} /> }
       {song.title}
     </div>
-    {
-      playable &&
-        <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
-          subscriber={subscriber} handleSongPlay={handleSongPlay} />
-    }
-    <ProgressBar now={songProgress} max={100} style={{ width: '10rem', '--bs-progress-height': '0.375rem', '--bs-progress-bar-bg': 'var(--bs-dark-text-emphasis)' }} />
+    <div className="d-flex align-items-center gap-2">
+      {
+        playable &&
+          <PlayControls songId={song.id} playing={song.playing} loading={song.loading}
+            subscriber={subscriber} handleSongPlay={handleSongPlay} />
+      }
+      <ProgressBar now={songProgress[song.id]} max={100} style={{ width: '10rem', '--bs-progress-height': '0.375rem', '--bs-progress-bar-bg': 'var(--bs-dark-text-emphasis)' }} />
 
-    { purchased && <Badge bg="success">Owned</Badge> }
-    { canBePurchased &&
-        <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
-    }
-    { isVotingPeriodActive && !hasVotedCurrentPeriod && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
+      { purchased && <Badge bg="success">Owned</Badge> }
+      { canBePurchased &&
+          <Button onClick={() => handleSongBuy(song.id)}>Buy ({ exclusivePrice.toString() } JUST)</Button>
+      }
+      { isVotingPeriodActive && !hasVotedCurrentPeriod && <Button onClick={() => handleSongVoting(song.id)}>Vote</Button> }
+    </div>
   </ListGroup.Item>;
 };
 
@@ -119,10 +121,10 @@ const ArtistSongsList = ({
 
   if (songItems.length === 0) return null;
 
-  return <>
+  return <div class="row mt-4">
     { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
     <ListGroup variant='flush'>{songItems}</ListGroup>
-  </>;
+  </div>;
 };
 
 const ArtistSongs = () => {
@@ -134,7 +136,7 @@ const ArtistSongs = () => {
   const [progress, setProgress] = useState(0);
   const [trackingInterval, setTrackingInterval] = useState(null);
   const [playbackEndedSongId, setPlaybackEndedSongId] = useState(null);
-  const [songProgress, setSongProgress] = useState(0);
+  const [songProgress, setSongProgress] = useState({});
 
   const sendTrackingEvent = useCallback((song) => {
     const signature = localStorage.getItem('subscriberSignature');
@@ -158,12 +160,12 @@ const ArtistSongs = () => {
     }
   }, [subscriber, artistAddress]);
 
-  const handleSongProgressUpdate = (evt) => {
+  const handleSongProgressUpdate = (evt, songId) => {
     const { currentTime, duration } = evt.target;
 
-    setSongProgress(
-      Math.round(currentTime * 100 / duration)
-    )
+    const progress = Math.round(currentTime * 100 / duration);
+
+    setSongProgress((prev) => ({...prev, [songId]: progress }));
   };
 
   const decryptFileURL = useCallback(async (cid) => {
@@ -215,7 +217,7 @@ const ArtistSongs = () => {
 
         evt.target.removeEventListener('canplaythrough', () => {});
       });
-      song.audio.addEventListener('timeupdate', handleSongProgressUpdate);
+      song.audio.addEventListener('timeupdate', (evt) => handleSongProgressUpdate(evt, songId));
     }
 
     const otherSongs = songs.filter((sng) => sng.id !== songId);
@@ -225,6 +227,7 @@ const ArtistSongs = () => {
 
   const handleSongEnded = (songId) => {
     setPlaybackEndedSongId(songId);
+    setSongProgress((prev) => ({ ...prev, [songId]: 0}));
   };
 
   useEffect(() => {
@@ -334,8 +337,12 @@ const ArtistSongs = () => {
     return account === artistAddress.toLowerCase();
   };
 
-  return <>
-    { accountIsArtist() && <Button onClick={() => navigateToNewSong()}>Add a song</Button> }
+  return <div class="container">
+    { accountIsArtist() &&
+      <div className="mt-5 d-flex justify-content-end">
+        <Button onClick={() => navigateToNewSong()}>Add a song</Button>
+      </div>
+    }
     <ArtistSongsList
       songs={songs}
       progress={progress}
@@ -348,7 +355,7 @@ const ArtistSongs = () => {
       handleSongVoting={handleSongVoting}
       platform={platform}
     />
-  </>;
+  </div>;
 };
 
 export default ArtistSongs;
