@@ -9,8 +9,10 @@ npx hardhat add_subscription_plan 10000000000000000 2592000 --network localhost
 npx hardhat add_subscription_plan 20000000000000000 5184000 --network localhost
 npx hardhat add_subscription_plan 30000000000000000 7776000 --network localhost
 
-# TODO: consider starting an oracle simulator for dev. environment
-# TODO: start up the subgraph docker instance
+# TODO: use foreman and start up all of the google cloud functions and local graph node
 
 read -p $'\n\nCopy 5th address from Hardhat node and enter it here.\nThis address will be used for a reporter account: (enter)\n' reporterAddress
 npx hardhat add_reporter $reporterAddress --network localhost
+
+read -p $'\n\nCopy 6th address from Hardhat node and enter it here.\nThis address will be used for a encryptor account: (enter)\n' encryptorAddress
+npx hardhat add_encryptor $encryptorAddress --network localhost
