@@ -126,9 +126,8 @@ const NewArtistSong = () => {
     if (currentEthPrice.eq(zero) || exclusivePrice.eq(zero)) return 0;
 
     const priceInWei = exclusivePrice.mul(pricePerToken);
-    const priceInEth = ethers.utils.formatEther(priceInWei);
 
-    return ethers.utils.formatEther(currentEthPrice.mul(priceInEth));
+    return ethers.utils.formatEther(currentEthPrice.mul(priceInWei));
   };
 
   const onSubmit = async (data) => {
@@ -216,7 +215,7 @@ const NewArtistSong = () => {
                       message: 'price must be at least 1 JUST'
                     },
                     validate: {
-                      onlyIntegers: (v) => parseInt(v) === v || 'must be an integer'
+                      onlyIntegers: (v) => parseInt(v).toString() === v || 'must be an integer'
                     }
                   })}
                 />

@@ -18,15 +18,17 @@ const corsMiddleware = require('../../middlewares/corsMiddleware.js');
 
 const pipelinePromisified = util.promisify(pipeline);
 
+require('dotenv').config();
+
 const {
-  INFURA_API_KEY,
-  INFURA_API_SECRET,
-  INFURA_URL,
-  IPFS_ENDPOINT,
+  IPFS_API_KEY,
+  IPFS_API_SECRET,
+  IPFS_API_URL,
+  RPC_API_URL,
   ENCRYPTOR_PRIVATE_KEY
 } = process.env;
 
-const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
 const contractAddresses = require("../../contracts/contract-addresses.json");
@@ -38,11 +40,11 @@ const platform = new ethers.Contract(
 );
 
 const fetchAndWriteFile = async (tmpFile, cid) => {
-  const base64Credentials = Buffer.from(`${INFURA_API_KEY}:${INFURA_API_SECRET}`).toString('base64');
+  const base64Credentials = Buffer.from(`${IPFS_API_KEY}:${IPFS_API_SECRET}`).toString('base64');
 
   const headers = { 'Authorization': `Basic ${base64Credentials}` };
 
-  const response = await fetch(IPFS_ENDPOINT + cid, { headers });
+  const response = await fetch(IPFS_API_URL + cid, { headers });
   const fileStream = fs.createWriteStream(tmpFile);
 
   await pipelinePromisified(response.body, fileStream);

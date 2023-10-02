@@ -134,6 +134,7 @@ const {
   RPC_PROVIDER_URL,
   SEPOLIA_PRIVATE_KEY,
   LOCAL_PRIVATE_KEY,
+  SAPPHIRE_TESTNET_PRIVATE_KEY,
   ETHERSCAN_API_KEY
 } = process.env;
 
@@ -154,6 +155,11 @@ module.exports = {
       url: 'http://localhost:8545',
       accounts: LOCAL_PRIVATE_KEY ? [LOCAL_PRIVATE_KEY] : [],
       chainId: 0x5afd
+    },
+    sapphire_testnet: {
+      url: 'https://testnet.sapphire.oasis.dev',
+      accounts: SAPPHIRE_TESTNET_PRIVATE_KEY ? [SAPPHIRE_TESTNET_PRIVATE_KEY] : [],
+      chainId: 0x5aff,
     },
     hardhat: {
       mining: {

@@ -9,18 +9,19 @@ const functions = require('@google-cloud/functions-framework');
 const sodium = require('libsodium-wrappers');
 const ethers = require("ethers");
 
-const IPFS_ADD_ENDPOINT = 'https://ipfs.infura.io:5001/api/v0/add';
+require('dotenv').config()
 
 const corsMiddleware = require('../../middlewares/corsMiddleware.js');
 
 const {
-  INFURA_API_KEY,
-  INFURA_API_SECRET,
-  INFURA_URL,
+  IPFS_API_KEY,
+  IPFS_API_SECRET,
+  IPFS_ADD_ENDPOINT,
+  RPC_API_URL,
   ENCRYPTOR_PRIVATE_KEY
 } = process.env;
 
-const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
 const contractAddresses = require("../../contracts/contract-addresses.json");
@@ -33,7 +34,7 @@ const platform = new ethers.Contract(
 
 const PIN_OPTIONS = {
   params: { pin: 'true' },
-  auth: { username: INFURA_API_KEY, password: INFURA_API_SECRET },
+  auth: { username: IPFS_API_KEY, password: IPFS_API_SECRET },
   headers: {
     'Content-Type': 'multipart/form-data'
   },
@@ -87,8 +88,6 @@ const encryptFile = async (encryptionKeyBytes, outFilePath, fileContent) => {
 };
 
 const pinFileToIpfs = async (res, uploads, fields) => {
-  const { INFURA_API_KEY, INFURA_API_SECRET } = process.env;
-
   const encryptionKey = await getEncryptionKey();
   const encryptionKeyBytes = sodium.from_hex(encryptionKey.slice(2));
 
