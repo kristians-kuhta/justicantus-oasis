@@ -14,7 +14,7 @@ const sodium = require('libsodium-wrappers');
 const ethers = require("ethers");
 const { BigNumber } = ethers;
 
-const corsMiddleware = require('../../middlewares/corsMiddleware.js');
+const corsMiddleware = require('./middlewares/corsMiddleware.js');
 
 const pipelinePromisified = util.promisify(pipeline);
 
