@@ -11,7 +11,8 @@ const ethers = require("ethers");
 
 require('dotenv').config()
 
-const corsMiddleware = require('../../middlewares/corsMiddleware.js');
+// TODO: figure out how to extract this to a new package
+const corsMiddleware = require('./middlewares/corsMiddleware.js');
 
 const {
   IPFS_API_KEY,
