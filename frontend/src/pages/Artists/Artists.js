@@ -30,7 +30,7 @@ const Artists = () => {
       };
     });
     setLoading(false);
-  }, []);
+  }, [platform, setLoading]);
 
   const handleSearch = async (evt) => {
     evt.preventDefault();
