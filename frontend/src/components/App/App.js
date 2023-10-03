@@ -21,11 +21,11 @@ const CHAINS = {
     decimal: 31337,
     name: 'Local hardhat network'
   },
-  // Sepolia
+  // Oasis Sapphire Testnet
   production: {
-    hex: '0xaa36a7',
-    decimal: 11155111,
-    name: 'Sepolia'
+    hex: '0x5aff',
+    decimal: 23295,
+    name: 'Oasis Sapphire Testnet'
   }
 };
 
