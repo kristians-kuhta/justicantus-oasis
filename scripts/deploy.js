@@ -8,7 +8,6 @@ function saveFrontendFiles(platform) {
     "../frontend/src/contracts",
     "../cloud_functions/contracts",
     "../build",
-    "../justicantus-subgraph/abis"
   ];
 
   // `artifacts` is a helper property provided by Hardhat to read artifacts
