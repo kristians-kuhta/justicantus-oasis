@@ -25,8 +25,8 @@ const {
 const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
-const contractAddresses = require("../../contracts/contract-addresses.json");
-const PlatformArtifact = require("../../contracts/Platform.json");
+const contractAddresses = require("./contracts/contract-addresses.json");
+const PlatformArtifact = require("./contracts/Platform.json");
 const platform = new ethers.Contract(
   contractAddresses.Platform,
   PlatformArtifact.abi,
