@@ -13,6 +13,8 @@ contract SharedStorage {
   string private constant SIGNATURE_PREFIX = "\x19Ethereum Signed Message:\n32";
 
   mapping(address account => uint256 id) public artistIds;
+  address[] public artistAccounts;
+  uint256 public artistCount;
 
   mapping(uint256 id => string uri) internal songURIs;
   mapping(address account => uint256[] ids) internal songIds;
