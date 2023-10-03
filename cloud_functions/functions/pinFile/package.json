@@ -12,6 +12,7 @@
     "axios": "^1.4.0",
     "busboy": "^1.6.0",
     "dotenv": "^16.3.1",
+    "ethers": "^6.7.1",
     "form-data": "^4.0.0",
     "libsodium-wrappers": "^0.7.13"
   },
