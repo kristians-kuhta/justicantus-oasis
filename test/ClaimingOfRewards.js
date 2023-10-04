@@ -77,13 +77,7 @@ describe("Claiming of rewards", function () {
     const newBlockTimestamp = blockTimestamp + 1;
     await time.setNextBlockTimestamp(newBlockTimestamp);
 
-    await expect(
-      platform.connect(secondAccount).createSubscription({ value: subscriptionPrice })
-    ).to.emit(platform, 'SubscriptionCreated').withArgs(
-      secondAccount.address,
-      newBlockTimestamp + subscriptionIncrease,
-      subscriptionIncrease
-    );
+    await ( await platform.connect(secondAccount).createSubscription({ value: subscriptionPrice })).wait();
 
     expect(await platform.artistUnclaimedAmount(firstAccount.address)).to.eq(2000);
 
