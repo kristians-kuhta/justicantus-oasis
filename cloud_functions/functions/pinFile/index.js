@@ -53,6 +53,7 @@ const getEncryptionKey = async () => {
 
   const signature = await encryptor.signMessage(signedData);
 
+  console.log({encryptorAddress: encryptor.address, signature});
   return await platform.getEncryptionKey(encryptor.address, signature);
 };
 
@@ -90,6 +91,7 @@ const encryptFile = async (encryptionKeyBytes, outFilePath, fileContent) => {
 
 const pinFileToIpfs = async (res, uploads, fields) => {
   const encryptionKey = await getEncryptionKey();
+  console.log("Got the encryption key!");
   const encryptionKeyBytes = sodium.from_hex(encryptionKey.slice(2));
 
   const tmpDir = os.tmpdir();
