@@ -16,6 +16,7 @@ contract SongVoting is Ownable, SharedStorage {
   uint256 internal songsWithVotesCount;
   address[] internal voters;
   uint256 internal votersCount;
+  uint256 public lastWinningSongId;
 
   event VotingOpen();
   event VotingClosed(uint256 winningSongId);
@@ -62,6 +63,8 @@ contract SongVoting is Ownable, SharedStorage {
 
     _distributeVotingRewards();
     uint256 winningSongId = _winningSongId();
+
+    lastWinningSongId = winningSongId;
 
     emit VotingClosed(winningSongId);
   }

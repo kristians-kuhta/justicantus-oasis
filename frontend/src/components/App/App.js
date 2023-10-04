@@ -82,10 +82,7 @@ export const appLoader = async () => {
 
     const hasVotedCurrentPeriod = isVotingPeriodActive ? await platform.hasVotedCurrentPeriod(account, accountSignature) : false;
 
-    const votingClosedFilter = platform.filters['VotingClosed']();
-    const votingClosedEvents = await platform.queryFilter(votingClosedFilter);
-    const lastWinningSongId = votingClosedEvents.length > 0 ?
-      votingClosedEvents[votingClosedEvents.length - 1].args.winningSongId.toString() : null;
+    const lastWinningSongId = await platform.lastWinningSongId();
 
     return {
       account,
