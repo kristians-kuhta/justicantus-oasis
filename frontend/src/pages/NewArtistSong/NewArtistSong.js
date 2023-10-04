@@ -57,7 +57,7 @@ const NewArtistSong = () => {
   useEffect(() => {
     fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=oasis-network')
       .then((res) => res.json())
-      .then((data) => setCurrentROSEPrice(BigNumber.from(data[0].current_price.toFixed())));
+      .then((data) => setCurrentROSEPrice(data[0].current_price));
 
     platform.pricePerToken().then((price) => setPricePerToken(price));
 
@@ -123,11 +123,12 @@ const NewArtistSong = () => {
 
   const exclusivePriceUsd = () => {
     const zero = BigNumber.from(0);
-    if (currentROSEPrice.eq(zero) || exclusivePrice.eq(zero)) return 0;
+
+    if (currentROSEPrice === 0 || exclusivePrice.eq(zero)) return 0;
 
     const priceInWei = exclusivePrice.mul(pricePerToken);
 
-    return ethers.utils.formatEther(currentROSEPrice.mul(priceInWei));
+    return ethers.utils.formatEther(priceInWei) * currentROSEPrice;
   };
 
   const onSubmit = async (data) => {
