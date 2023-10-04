@@ -55,7 +55,7 @@ const RegisterArtist = () => {
       platform.on('ResourceRegistered', handleResourceRegisteredEvent);
 
       // TODO: consider narrowing this down even further
-      await platform.registerArtist(data.artistName, { gasLimit: 150000 });
+      await platform.registerArtist(data.artistName, { gasLimit: 200000 });
 
       setProgress(66);
     } catch (e) {

@@ -141,7 +141,7 @@ const NewArtistSong = () => {
 
       // TODO: figure out the actual gas needed here
       const exclusivePriceJUST = songExclusive ? songExclusivePrice : 0;
-      await platform.registerSong(ipfsHash, exclusivePriceJUST, { gasLimit: 225000 });
+      await platform.registerSong(ipfsHash, exclusivePriceJUST, { gasLimit: 250000 });
 
       setProgress(75);
     } catch (e) {
