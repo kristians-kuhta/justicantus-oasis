@@ -41,7 +41,7 @@ const NewArtistSong = () => {
   const [progress, setProgress] = useState(0);
   const [exclusivePriceRequired, setExclusivePriceRequired] = useState(false);
   const [exclusivePrice, setExclusivePrice] = useState(BigNumber.from(0));
-  const [currentEthPrice, setCurrentEthPrice] = useState(BigNumber.from(0));
+  const [currentROSEPrice, setCurrentROSEPrice] = useState(BigNumber.from(0));
   const [pricePerToken, setPricePerToken] = useState(BigNumber.from(0));
   const navigate = useNavigate();
 
@@ -55,13 +55,13 @@ const NewArtistSong = () => {
 
 
   useEffect(() => {
-    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum')
+    fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=oasis-network')
       .then((res) => res.json())
-      .then((data) => setCurrentEthPrice(BigNumber.from(data[0].current_price.toFixed())));
+      .then((data) => setCurrentROSEPrice(BigNumber.from(data[0].current_price.toFixed())));
 
     platform.pricePerToken().then((price) => setPricePerToken(price));
 
-  }, [platform, setCurrentEthPrice, setPricePerToken]);
+  }, [platform, setCurrentROSEPrice, setPricePerToken]);
 
   const handleResourceRegisteredEvent = async (creator, resourceType, assignedId) => {
     const accountLowercase = account.toLowerCase();
@@ -123,11 +123,11 @@ const NewArtistSong = () => {
 
   const exclusivePriceUsd = () => {
     const zero = BigNumber.from(0);
-    if (currentEthPrice.eq(zero) || exclusivePrice.eq(zero)) return 0;
+    if (currentROSEPrice.eq(zero) || exclusivePrice.eq(zero)) return 0;
 
     const priceInWei = exclusivePrice.mul(pricePerToken);
 
-    return ethers.utils.formatEther(currentEthPrice.mul(priceInWei));
+    return ethers.utils.formatEther(currentROSEPrice.mul(priceInWei));
   };
 
   const onSubmit = async (data) => {

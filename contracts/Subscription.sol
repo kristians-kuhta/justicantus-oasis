@@ -7,18 +7,6 @@ contract Subscription is Ownable {
   mapping(address account => uint256 expirationTimestamp) public subscriptions;
   mapping(uint256 price => uint256 interval) public subscriptionPlanIntervals;
 
-  event SubscriptionCreated(
-    address indexed account,
-    uint256 indexed expirationTimestamp,
-    uint256 indexed timestampIncrease
-  );
-
-  event SubscriptionFunded(
-    address indexed account,
-    uint256 indexed expirationTimestamp,
-    uint256 indexed timestampIncrease
-  );
-
   event SubscriptionPlanAdded(uint256 indexed price, uint256 indexed timestampIncrease);
 
   error SubscriptionAlreadyCreated();
@@ -34,8 +22,6 @@ contract Subscription is Ownable {
 
     uint256 expirationTimestamp = block.timestamp + timestampIncrease;
     subscriptions[msg.sender] = expirationTimestamp;
-
-    emit SubscriptionCreated(msg.sender, expirationTimestamp, timestampIncrease);
   }
 
   function fundSubscription() external payable {
@@ -54,8 +40,6 @@ contract Subscription is Ownable {
     }
 
     subscriptions[msg.sender] = expirationTimestamp;
-
-    emit SubscriptionFunded(msg.sender, expirationTimestamp, timestampIncrease);
   }
 
   function setSubscriptionPlan(uint256 price, uint256 timestampIncrease) external onlyOwner {
