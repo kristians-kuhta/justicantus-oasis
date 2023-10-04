@@ -75,7 +75,7 @@ const ArtistDashboard = () => {
     <p>Total played minutes: {playedMinutes.toString()}</p>
     <p>Total claimed minutes: {claimedMinutes.toString()}</p>
     <p>Total claimed amount: {claimedAmount.toString()} ETH</p>
-    <p>Owned tokens: {justTokenBalance} JUST</p>
+    <p>Owned tokens: {justTokenBalance.toString()} JUST</p>
     <div>
       <p>Unclaimed minutes: {unclaimedMinutes()}</p>
       { unclaimedMinutes() > 0 && <Button onClick={handleClaimRewards}>Claim rewards</Button> }
