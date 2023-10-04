@@ -104,6 +104,7 @@ contract ResourceRegistration is SharedStorage {
     );
   }
 
+  // TODO: consider renaming this to _generateRandomInt or something similar
   function _generateRandomBytes() internal view returns (uint256) {
     // NOTE: This is done because you cannot get Sapphire precompiles on local hardhat node
     if (block.chainid == 0x5aff || block.chainid == 0x5afe) {
