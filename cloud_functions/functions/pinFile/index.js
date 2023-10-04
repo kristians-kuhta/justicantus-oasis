@@ -11,7 +11,8 @@ const ethers = require("ethers");
 
 require('dotenv').config()
 
-const corsMiddleware = require('../../middlewares/corsMiddleware.js');
+// TODO: figure out how to extract this to a new package
+const corsMiddleware = require('./middlewares/corsMiddleware.js');
 
 const {
   IPFS_API_KEY,
@@ -24,8 +25,8 @@ const {
 const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
-const contractAddresses = require("../../contracts/contract-addresses.json");
-const PlatformArtifact = require("../../contracts/Platform.json");
+const contractAddresses = require("./contracts/contract-addresses.json");
+const PlatformArtifact = require("./contracts/Platform.json");
 const platform = new ethers.Contract(
   contractAddresses.Platform,
   PlatformArtifact.abi,

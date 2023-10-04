@@ -72,6 +72,8 @@ contract ResourceRegistration is SharedStorage {
 
     artistNames[generatedId] = name;
     artistIds[account] = generatedId;
+    artistCount++;
+    artistAccounts.push(account);
 
     emit ResourceRegistered(
       account,

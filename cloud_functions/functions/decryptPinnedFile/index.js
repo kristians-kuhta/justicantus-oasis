@@ -3,7 +3,6 @@ const os = require('os');
 const fs = require('fs');
 const { pipeline } = require('stream');
 const util = require('util');
-const fileType = require('file-type')
 
 const FormData = require('form-data');
 const axios = require('axios');
@@ -14,7 +13,7 @@ const sodium = require('libsodium-wrappers');
 const ethers = require("ethers");
 const { BigNumber } = ethers;
 
-const corsMiddleware = require('../../middlewares/corsMiddleware.js');
+const corsMiddleware = require('./middlewares/corsMiddleware.js');
 
 const pipelinePromisified = util.promisify(pipeline);
 
@@ -31,8 +30,8 @@ const {
 const provider = new ethers.providers.JsonRpcProvider(RPC_API_URL);
 const encryptor = new ethers.Wallet(ENCRYPTOR_PRIVATE_KEY, provider);
 
-const contractAddresses = require("../../contracts/contract-addresses.json");
-const PlatformArtifact = require("../../contracts/Platform.json");
+const contractAddresses = require("./contracts/contract-addresses.json");
+const PlatformArtifact = require("./contracts/Platform.json");
 const platform = new ethers.Contract(
   contractAddresses.Platform,
   PlatformArtifact.abi,
@@ -114,6 +113,8 @@ const validateRequestParams = async (req) => {
 };
 
 const handleDecryptPinnedFile = async (req, res) => {
+  const fileType = await import('file-type');
+
   corsMiddleware(req, res, 'GET', async () => {
     const { error, errorStatusCode } = await validateRequestParams(req);
 

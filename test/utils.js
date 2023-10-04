@@ -34,12 +34,12 @@ const deployPlatform = async () => {
 
 const registerArtist = async (platform, artistAccount, artistName) => {
   const RESOURCE_TYPE_ARTIST = 1;
+  const countBefore = await platform.artistCount();
 
   expect(
     await platform.connect(artistAccount).registerArtist(artistName)
   ).to.emit(platform, 'ResourceRegistered').withArgs(
     artistAccount.address,
-
     RESOURCE_TYPE_ARTIST,
     anyValue,
     artistName
@@ -50,9 +50,11 @@ const registerArtist = async (platform, artistAccount, artistName) => {
   ).to.equal(artistName);
 
   // Expecting that the ID has been assigned
-  expect(
-    (await platform.getArtistId(artistAccount.address)).toString()
-  ).not.to.equal('0');
+  expect(await platform.getArtistId(artistAccount.address)).not.to.equal(BigNumber.from(0));
+
+  expect(await platform.artistCount()).to.equal(countBefore.add(BigNumber.from(1)));
+
+  expect(await platform.artistAccounts(countBefore)).to.eq(artistAccount.address);
 }
 
 const registerSong = async (platform, artistAccount, uri, exclusivePrice) => {
