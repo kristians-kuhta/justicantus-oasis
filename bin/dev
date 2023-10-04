@@ -4,6 +4,9 @@ set -e
 # Deploy the platform
 npx hardhat run scripts/deploy.js --network localhost
 
+read -p $'\n\nCopy deployed platform address and enter it here: (enter)\n' platformAddress
+PLATFORM_ADDRESS=$platformAddress npx hardhat run scripts/writeContractABIs.js --network localhost
+
 # Add three different subscription plans
 npx hardhat add_subscription_plan 10000000000000000 2592000 --network localhost
 npx hardhat add_subscription_plan 20000000000000000 5184000 --network localhost
