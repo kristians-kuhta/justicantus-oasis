@@ -18,6 +18,33 @@ const ArtistDashboard = () => {
   const [unclaimedAmount, setUnclaimedAmount] = useState(0);
   const [progress, setProgress] = useState(0);
   const [justTokenBalance, setJustTokenBalance] = useState(BigNumber.from(0));
+  const [amount, setAmount] = useState(1);
+
+  const handleBuyTokens = async () => {
+    setMessage({ text: '', type: null });
+    setProgress(50);
+
+    const pricePerToken = await platform.pricePerToken();
+    const price = pricePerToken.mul(amount);
+
+    try {
+      await (await platform.buyTokens(amount, { value: price })).wait();
+
+      setProgress(100);
+      setMessage({
+        text: 'Purchase successful!',
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setMessage({
+        text: 'Could not purchase tokens!',
+        type: 'danger'
+      });
+    }
+
+    setProgress(0);
+  };
 
   const handleClaimRewards = async () => {
     setMessage({ text: '', type: null });
@@ -81,6 +108,12 @@ const ArtistDashboard = () => {
       { unclaimedMinutes() > 0 && <Button onClick={handleClaimRewards}>Claim rewards</Button> }
     </div>
     <p>Total unclaimed amount: {unclaimedAmount.toString()} ETH</p>
+    <p className="d-flex">
+      <input type="number" step="1" min="1" value={amount} className="form-control"
+        onChange={(e) => setAmount(parseInt(e.target.value, 10))}
+      />
+      <Button onClick={handleBuyTokens}>Buy tokens</Button>
+    </p>
     { progress > 0 && progress < 100 && <ProgressBar className="mt-3" animated now={progress} /> }
   </div>;
 };
