@@ -9,7 +9,7 @@ Digital music service empowering Artists with Ethical Music Streaming on the Blo
 
 Read more about the project [here](docs/about_justicantus.md).
 
-Read more about the technical overview (currently assumed project architecture) [here](docs/technical_overview.md).
+Read more about the technical overview [here](docs/technical_overview.md).
 
 ## Technologies used
 The project is a full-stack dapp, intended to be used inside of a browser.
